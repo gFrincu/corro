@@ -41,33 +41,57 @@ export function effectiveJudgeId(game: GameInfo | null): string | null {
 export class JudgePanel {
 	private panel: HTMLElement | null = null;
 	private deps: JudgePanelDeps | null = null;
+	/** The table as it stands. The controls outlive any one repaint now, so a handler must read
+	 *  the CURRENT table rather than the one it was built with. */
+	private table: GameInfo | null = null;
 
 	init(panel: HTMLElement | null, deps: JudgePanelDeps): void {
 		this.panel = panel;
 		this.deps = deps;
 	}
 
-	/** Rebuild from authoritative state. Hides itself entirely when no judge is named here. */
+	/**
+	 * Repaint from authoritative state. Hides itself entirely when no judge is named here.
+	 *
+	 * Choosing a judge is itself an authoritative change, so this runs on the very repaint that
+	 * answers it — and moving through a radio group with the arrows chooses on every key. Building
+	 * the controls again there would destroy the radio the host is standing on and replace it with
+	 * an identical one: focus falls to the document in between, and a screen reader re-reads the
+	 * whole context from the window title down, on every single arrow press. So the controls are
+	 * built ONCE per roster and only their state is synchronised afterwards.
+	 */
 	render(game: GameInfo | null): void {
 		const panel = this.panel;
 		if (!panel || !this.deps) return;
+		this.table = game;
 		const named = judgeIsNamedHere(game);
 		panel.hidden = !named;
 		panel.classList.toggle('hidden', !named);
 		if (!game || !named) {
 			panel.replaceChildren();
+			delete panel.dataset.builtFor;
 			return;
 		}
-		// An authoritative repaint replaces the control the host may be standing on: remember which
-		// one had focus and give it back.
-		const focused = (document.activeElement as HTMLElement | null)?.dataset?.judgeId ?? null;
-		this.build(panel, game);
-		if (focused) {
-			// Matched by reading the ids rather than by building a selector out of one: a player id
-			// is an opaque string, and a selector is a place where an opaque string can misbehave.
-			panel.querySelectorAll<HTMLInputElement>('input[data-judge-id]')
-				.forEach(input => { if (input.dataset.judgeId === focused) input.focus(); });
+
+		// What the CONTROLS depend on: who is at the table, and whether they are mine to move.
+		// Not who was chosen — that is state, and state is synchronised in place.
+		const builtFor = `${this.deps.isHost()}:${game.players.map(player => player.id).join(',')}`;
+		if (panel.dataset.builtFor !== builtFor) {
+			panel.dataset.builtFor = builtFor;
+			this.build(panel, game);
 		}
+		this.syncChoice(panel, game);
+	}
+
+	/** Mark whoever judges as things stand, without touching the DOM the keyboard is inside. */
+	private syncChoice(panel: HTMLElement, game: GameInfo): void {
+		const chosen = effectiveJudgeId(game);
+		panel.querySelectorAll<HTMLInputElement>('input[data-judge-id]').forEach(input => {
+			const isChosen = input.dataset.judgeId === chosen;
+			// Only when it actually differs: assigning `checked` the value it already has is
+			// harmless, but assigning it at all on a focused radio is not worth risking.
+			if (input.checked !== isChosen) input.checked = isChosen;
+		});
 	}
 
 	/**
@@ -85,7 +109,6 @@ export class JudgePanel {
 
 	private build(panel: HTMLElement, game: GameInfo): void {
 		const t = this.deps!.t;
-		const chosen = effectiveJudgeId(game);
 		const fieldset = document.createElement('fieldset');
 		fieldset.className = 'judge-panel__group';
 		const legend = document.createElement('legend');
@@ -101,13 +124,13 @@ export class JudgePanel {
 		const list = document.createElement('div');
 		list.className = 'judge-panel__list';
 		for (const player of game.players) {
-			list.appendChild(this.option(player, player.id === chosen, game));
+			list.appendChild(this.option(player));
 		}
 		fieldset.appendChild(list);
 		panel.replaceChildren(fieldset);
 	}
 
-	private option(player: LobbyPlayer, isChosen: boolean, game: GameInfo): HTMLElement {
+	private option(player: LobbyPlayer): HTMLElement {
 		const row = document.createElement('div');
 		row.className = 'judge-panel__option';
 		const input = document.createElement('input');
@@ -115,7 +138,6 @@ export class JudgePanel {
 		input.name = 'table-judge';
 		input.id = `table-judge-${player.id}`;
 		input.dataset.judgeId = player.id;
-		input.checked = isChosen;
 		input.setAttribute('aria-describedby', 'judge-panel-hint');
 		// Never the disabled attribute: a guest still reads the choice with the keyboard, and a
 		// control nobody can reach is a control nobody can be told about either.
@@ -126,7 +148,7 @@ export class JudgePanel {
 				if (event.key === ' ' || event.key === 'Enter') event.preventDefault();
 			});
 		} else {
-			input.addEventListener('change', () => { void this.choose(player.id, game); });
+			input.addEventListener('change', () => { void this.choose(player.id); });
 		}
 		const label = document.createElement('label');
 		label.htmlFor = input.id;
@@ -135,8 +157,8 @@ export class JudgePanel {
 		return row;
 	}
 
-	private async choose(playerId: string, game: GameInfo): Promise<void> {
-		if (playerId === game.fixedJudgeId) return;
+	private async choose(playerId: string): Promise<void> {
+		if (playerId === this.table?.fixedJudgeId) return;
 		try {
 			await this.deps!.assign(playerId);
 		} catch {

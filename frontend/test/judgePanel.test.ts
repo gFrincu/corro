@@ -132,16 +132,53 @@ test('the host is not told what the radio they just moved already said', () => {
 	assert.deepEqual(host.announced, []);
 });
 
-test('an authoritative repaint gives the keyboard back where it was', () => {
+test('a repaint moves the mark without rebuilding the control under the keyboard', () => {
+	// Choosing IS an authoritative change, so the repaint answering it lands while the host is
+	// still inside the group — and arrow keys choose on every press. Rebuilding here would drop
+	// focus to the document between the old radio and its replacement, and a screen reader would
+	// re-read the whole context, window title down, on every arrow.
 	const h = harness(true);
 	h.panel.render(table());
-	const berto = radios(h.element)[1];
-	berto.focus();
+	const before = radios(h.element);
+	before[1].focus();
 
 	h.panel.render(table({ fixedJudgeId: 'p2' }));
 
-	assert.equal(
-		(document.activeElement as HTMLInputElement).dataset.judgeId,
-		'p1',
-		'the host stays on the control they were standing on');
+	const after = radios(h.element);
+	assert.equal(after[1], before[1], 'the same node, not an identical new one');
+	assert.equal(document.activeElement, before[1], 'and the keyboard never left it');
+	// The mark still followed the server.
+	assert.deepEqual(after.map(input => input.checked), [false, false, true]);
+});
+
+test('the controls are rebuilt when the table itself changes, not when a choice does', () => {
+	const h = harness(true);
+	h.panel.render(table());
+	const before = radios(h.element);
+
+	// Somebody arrives: there is a new person to choose from, so the group is genuinely different.
+	const bigger = table();
+	bigger.players = [...bigger.players, {
+		id: 'p3', name: 'Dani', token: 'kite', isHost: false, isReady: true, joinedAt: '',
+	}];
+	h.panel.render(bigger);
+
+	const after = radios(h.element);
+	assert.equal(after.length, 4);
+	assert.notEqual(after[0], before[0]);
+});
+
+test('a choice reads the table as it stands, not as it was when the control was built', () => {
+	const h = harness(true);
+	h.panel.render(table());
+
+	// The server confirms Cora; the controls survive that repaint, so their handlers must not be
+	// left comparing against the roster they were created with.
+	h.panel.render(table({ fixedJudgeId: 'p2' }));
+	const options = radios(h.element);
+	options[2].dispatchEvent(new window.Event('change', { bubbles: true }));
+	assert.deepEqual(h.assigned, [], 'choosing who already judges asks the server for nothing');
+
+	options[1].dispatchEvent(new window.Event('change', { bubbles: true }));
+	assert.deepEqual(h.assigned, ['p1']);
 });
