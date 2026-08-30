@@ -166,8 +166,9 @@ public class CategoriesFamilyTests
 		Assert.Equal(
 			new[]
 			{
-				"categoriesPerRound", "categoriesRoundSeconds", "categoriesStopClock",
-				"categoriesJudgeMode", "categoriesEndMode", "categoriesCycles", "categoriesTargetScore",
+				"categoriesPerRound", "categoriesRoundSeconds", "categoriesScoring",
+				"categoriesStopClock", "categoriesJudgeMode", "categoriesEndMode",
+				"categoriesCycles", "categoriesTargetScore",
 			},
 			offered);
 		Assert.All(offered, id => Assert.True(HouseRuleCatalog.IsKnownCategories(id), id));

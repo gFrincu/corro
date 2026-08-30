@@ -219,6 +219,23 @@ test('categories: the clock, the sheet size and whichever ending is in force', (
 		'game.categories_rules_cycles(3)');
 });
 
+test('categories: sharing the answers replaces the per-answer figure it would contradict', () => {
+	const rules: CategoriesRulesConfig = {
+		roundSeconds: 60, categoriesPerRound: 6, pointsPerAnswer: 1, cycles: 1,
+	};
+	// The classic line states one figure per valid answer, which is the whole story there.
+	assert.equal(buildCategoriesRulesLines(rules, t)[2], 'game.categories_rules_points(1)');
+
+	const shared = buildCategoriesRulesLines({ ...rules, scoring: 'shared' }, t);
+	assert.equal(shared[2], 'game.categories_rules_scoring_shared');
+	// Replaced, not appended: two lines about what an answer pays, disagreeing, is a puzzle.
+	assert.ok(!shared.some(line => line.startsWith('game.categories_rules_points')));
+	// A scoring the engine never heard of keeps the classic line.
+	assert.equal(
+		buildCategoriesRulesLines({ ...rules, scoring: 'generous' }, t)[2],
+		'game.categories_rules_points(1)');
+});
+
 test('categories: with no rules at all the package defaults still read', () => {
 	assert.equal(buildCategoriesRulesLines(null, t)[0], 'game.categories_rules_time(120)');
 });

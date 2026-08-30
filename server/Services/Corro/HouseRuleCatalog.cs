@@ -154,6 +154,12 @@ public static class HouseRuleCatalog
 	public static readonly IReadOnlySet<string> CategoriesEndModes =
 		new HashSet<string> { "rounds", "score" };
 
+	/// <summary>What the "categoriesScoring" choice rule accepts: "unique" = only an answer nobody
+	/// else wrote is worth anything (the classic), "shared" = a unique answer is worth double and a
+	/// coincidence still scores, so writing something is always better than writing nothing.</summary>
+	public static readonly IReadOnlySet<string> CategoriesScoringModes =
+		new HashSet<string> { "unique", "shared" };
+
 	/// <summary>What the "categoriesJudgeMode" choice rule accepts: "rotating" = the seat passes
 	/// each round so everybody judges and writes the same number of times (the classic), "fixed" =
 	/// one player named by the host judges the whole match, writes in none of it, and is therefore
@@ -172,6 +178,10 @@ public static class HouseRuleCatalog
 		["categoriesCycles"] = (r, v) => r with { Cycles = v.GetInt32() },
 		["categoriesTargetScore"] = (r, v) => r with { TargetScore = v.GetInt32() },
 		["categoriesStopClock"] = (r, v) => r with { StopsTheClock = v.GetBoolean() },
+		["categoriesScoring"] = (r, v) => v.ValueKind == JsonValueKind.String
+										    && CategoriesScoringModes.Contains(v.GetString()!)
+			? r with { Scoring = v.GetString()! }
+			: r,
 		["categoriesJudgeMode"] = (r, v) => v.ValueKind == JsonValueKind.String
 											  && CategoriesJudgeModes.Contains(v.GetString()!)
 			? r with { JudgeMode = v.GetString()! }
@@ -201,6 +211,7 @@ public static class HouseRuleCatalog
 			[ForbiddenModeRule] = ForbiddenModes,
 			["categoriesEndMode"] = CategoriesEndModes,
 			["categoriesJudgeMode"] = CategoriesJudgeModes,
+			["categoriesScoring"] = CategoriesScoringModes,
 		};
 
 	/// <summary>

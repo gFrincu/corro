@@ -46,6 +46,18 @@
       "nameKey": "rules.categoriesRoundSeconds"
     },
     {
+      "id": "categoriesScoring",
+      "group": "categories",
+      "type": "choice",
+      "default": "unique",
+      "options": [
+        { "id": "unique", "nameKey": "rules.categoriesScoringUnique" },
+        { "id": "shared", "nameKey": "rules.categoriesScoringShared" }
+      ],
+      "editableByHost": true,
+      "nameKey": "rules.categoriesScoring"
+    },
+    {
       "id": "categoriesStopClock",
       "group": "categories",
       "type": "toggle",

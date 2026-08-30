@@ -457,6 +457,12 @@ test('Letter Rush lets the host set the clock, the sheet and how the match ends'
 	const perRound = page.locator('#package-rules [data-rule-id="categoriesPerRound"]');
 	await expect(perRound).toHaveValue('12');
 
+	// How answers pay is the table's to choose: only what nobody else wrote, or a coincidence too.
+	const scoring = page.locator('#package-rules [data-rule-id="categoriesScoring"]');
+	await expect(scoring.nth(0)).toBeChecked();
+	await scoring.nth(1).dispatchEvent('click');
+	await expect(scoring.nth(1)).toBeChecked();
+
 	// Who judges is a choice of its own: the job passes each round, or one person takes it all
 	// match and the table names them once the game begins.
 	const judge = page.locator('#package-rules [data-rule-id="categoriesJudgeMode"]');

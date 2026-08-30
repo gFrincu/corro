@@ -199,6 +199,54 @@ public class CategoriesRulebookTests
 	}
 
 	[Fact]
+	public void The_classic_scoring_pays_only_the_answer_nobody_else_wrote()
+	{
+		Assert.Equal(1, CategoriesRulebook.PointsFor(CategoriesVerdict.Accepted, Rules));
+		Assert.Equal(0, CategoriesRulebook.PointsFor(CategoriesVerdict.Duplicate, Rules));
+		Assert.Equal(0, CategoriesRulebook.PointsFor(CategoriesVerdict.Rejected, Rules));
+	}
+
+	[Fact]
+	public void Sharing_them_pays_double_for_a_unique_answer_and_still_pays_a_coincidence()
+	{
+		var shared = Rules with { Scoring = "shared" };
+
+		Assert.Equal(2, CategoriesRulebook.PointsFor(CategoriesVerdict.Accepted, shared));
+		Assert.Equal(1, CategoriesRulebook.PointsFor(CategoriesVerdict.Duplicate, shared));
+		// A judge who said it was not an answer said so under every scoring there is.
+		Assert.Equal(0, CategoriesRulebook.PointsFor(CategoriesVerdict.Rejected, shared));
+		// The package's own figure still scales it: this is a ratio, not two hardcoded numbers.
+		Assert.Equal(6, CategoriesRulebook.PointsFor(
+			CategoriesVerdict.Accepted, shared with { PointsPerAnswer = 3 }));
+	}
+
+	[Fact]
+	public void A_round_scored_with_shared_answers_banks_the_coincidences_too()
+	{
+		var shared = Rules with { Scoring = "shared" };
+		var state = CategoriesRulebook.CreateInitialState(new[] { "p0", "p1", "p2" }, Deck(), shared);
+		Write(state, "p1", "Apple", "apricot");
+		Write(state, "p2", "apple", "");
+		CategoriesRulebook.BeginReview(state.Round);
+		// The judge agrees with both hints: the two apples coincide, the apricot stands alone.
+		CategoriesRulebook.RulePrompt(state.Round.Prompts[0], new Dictionary<string, CategoriesVerdict>
+		{
+			["p1"] = CategoriesVerdict.Duplicate,
+			["p2"] = CategoriesVerdict.Duplicate,
+		});
+		CategoriesRulebook.RulePrompt(state.Round.Prompts[1], new Dictionary<string, CategoriesVerdict>
+		{
+			["p1"] = CategoriesVerdict.Accepted,
+		});
+
+		var scores = CategoriesRulebook.ScoreRound(state, state.Round, shared);
+
+		// One coincidence (1) plus one answer of their own (2); the rival's blank pays nothing.
+		Assert.Equal(3, scores.First(score => score.PlayerId == "p1").Points);
+		Assert.Equal(1, scores.First(score => score.PlayerId == "p2").Points);
+	}
+
+	[Fact]
 	public void A_fixed_judge_keeps_the_seat_and_the_writers_never_take_a_turn_at_it()
 	{
 		var fixedJudge = Rules with { JudgeMode = "fixed", Cycles = 3 };

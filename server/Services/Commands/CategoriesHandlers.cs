@@ -426,20 +426,28 @@ public sealed class CategoriesRulePromptHandler : PlayerCommandHandler<Categorie
 			{
 				continue;
 			}
+			// What this answer is actually worth under THESE rules, rather than what an accepted
+			// answer is worth in general: where the table shares them, a coincidence scores too,
+			// and "so it scores nothing" would be a lie told to the person it cost.
+			var points = CategoriesRulebook.PointsFor(answer.Verdict, rules);
 			var key = answer.Verdict switch
 			{
 				CategoriesVerdict.Accepted => "game.categories_answer_accepted",
-				CategoriesVerdict.Duplicate => "game.categories_answer_duplicate",
+				CategoriesVerdict.Duplicate => points > 0
+					? "game.categories_answer_shared"
+					: "game.categories_answer_duplicate",
 				_ => "game.categories_answer_rejected",
 			};
 			// Targeted at its writer, so their own seat is the one the narrative emphasises.
+			// `count` rather than `points`: it is what pluralizes the line, and "1 point" and
+			// "2 points" are not the same sentence with a number swapped.
 			await context.Announcer.ToPlayer(answer.PlayerId, key, VisualNarrativeVars.Add(new()
 			{
 				["category"] = prompt.Name,
 				["answer"] = answer.Text,
-				["points"] = rules.PointsPerAnswer,
+				["count"] = points,
 			}, "outcome", targetPlayerId: answer.PlayerId,
-				tone: answer.Verdict == CategoriesVerdict.Accepted ? "gain" : "loss"));
+				tone: points > 0 ? "gain" : "loss"));
 		}
 	}
 

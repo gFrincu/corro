@@ -49,6 +49,11 @@ public sealed record CategoriesRulesConfig
 	/// <see cref="Services.Corro.HouseRuleCatalog.CategoriesJudgeModes"/>.</summary>
 	public string JudgeMode { get; init; } = "rotating";
 
+	/// <summary>What a ruled answer is worth: "unique" (only an answer nobody else wrote scores,
+	/// the classic) or "shared" (a unique answer is worth double and a coincidence still scores).
+	/// See <see cref="Services.Corro.HouseRuleCatalog.CategoriesScoringModes"/>.</summary>
+	public string Scoring { get; init; } = "unique";
+
 	/// <summary>Whether the first writer to finish ends the writing for EVERYONE. Off (the
 	/// default) each writer closes their own sheet and the round waits for the last of them or
 	/// for the clock; on, filling the sheet first is worth something, and the rest write against

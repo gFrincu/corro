@@ -355,6 +355,8 @@ export interface CategoriesRulesConfig {
   judgeMode?: string;
   /** Whether the first writer to finish ends the writing for everybody. */
   stopsTheClock?: boolean;
+  /** "unique" (only an answer nobody else wrote scores) or "shared" (a coincidence scores too). */
+  scoring?: string;
 }
 
 // ── Journey family (Mil Millas genre) ───────────────────────────────────────

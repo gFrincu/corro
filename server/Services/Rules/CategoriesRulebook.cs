@@ -208,6 +208,25 @@ public static class CategoriesRulebook
 
 	/// <summary>Add the round's accepted answers to the running totals, once every category has
 	/// been ruled. Returns one line's worth of result per writer, in seat order.</summary>
+	/// <summary>
+	/// What one ruled answer is worth. Under the classic scoring only an answer nobody else wrote
+	/// pays; where the table shares them, a unique answer is worth double and a coincidence still
+	/// scores — so writing something always beats writing nothing, which is a different game to
+	/// play rather than a softer one.
+	///
+	/// Rejected is always nothing, whoever is scoring: the judge said it was not an answer.
+	/// </summary>
+	public static int PointsFor(CategoriesVerdict verdict, CategoriesRulesConfig rules)
+	{
+		var shared = rules.Scoring == "shared";
+		return verdict switch
+		{
+			CategoriesVerdict.Accepted => rules.PointsPerAnswer * (shared ? 2 : 1),
+			CategoriesVerdict.Duplicate => shared ? rules.PointsPerAnswer : 0,
+			_ => 0,
+		};
+	}
+
 	public static IReadOnlyList<RoundScore> ScoreRound(
 		CategoriesState state,
 		CategoriesRoundState round,
@@ -216,12 +235,13 @@ public static class CategoriesRulebook
 		var scores = new List<RoundScore>();
 		foreach (var writerId in Writers(state, round))
 		{
-			var accepted = round.Prompts
+			var points = round.Prompts
 				.SelectMany(prompt => prompt.Answers)
-				.Count(answer => answer.PlayerId == writerId && answer.Verdict == CategoriesVerdict.Accepted);
+				.Where(answer => answer.PlayerId == writerId)
+				.Sum(answer => PointsFor(answer.Verdict, rules));
 			var player = state.Players.First(entry => entry.PlayerId == writerId);
-			player.Score += accepted * rules.PointsPerAnswer;
-			scores.Add(new RoundScore(writerId, accepted * rules.PointsPerAnswer, player.Score));
+			player.Score += points;
+			scores.Add(new RoundScore(writerId, points, player.Score));
 		}
 		return scores;
 	}

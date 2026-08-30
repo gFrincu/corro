@@ -66,6 +66,7 @@ Each category's result is announced to the whole table, and you also hear privat
 Creating the table sets:
 
 - who judges: whether the job passes round the table or stays with one person;
+- how answers score: only the ones nobody else wrote, or repeated ones as well;
 - whether finishing first stops the clock for everybody else;
 - how many categories each round has, from three to twelve;
 - how long the writing lasts, from half a minute to five, in quarter-minute steps;
@@ -77,7 +78,7 @@ With a fixed judge, whoever judges writes in no round at all, so they cannot win
 
 ## Winning
 
-Each valid answer scores one point. The match is always decided once everybody has judged the same number of rounds, because until then some players have written more than others: depending on what the host chose, it goes to whoever leads when the agreed rounds are played, or to whoever has reached the points. If the lead is tied, the match gives every judge one more round and plays on until somebody wins outright.
+Each valid answer scores one point, and where the table shares the repeated ones, an answer nobody else wrote is worth two while a coincidence still scores one. The match is always decided once everybody has judged the same number of rounds, because until then some players have written more than others: depending on what the host chose, it goes to whoever leads when the agreed rounds are played, or to whoever has reached the points. If the lead is tied, the match gives every judge one more round and plays on until somebody wins outright.
 
 ## Leaving
 

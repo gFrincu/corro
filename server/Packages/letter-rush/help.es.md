@@ -66,6 +66,7 @@ El resultado de cada categoría se anuncia a toda la mesa, y además oyes en pri
 Al crear la mesa se ajustan:
 
 - quién juzga: si el puesto va rotando o lo lleva siempre la misma persona;
+- cómo puntúan las respuestas: solo las que nadie más escribió, o también las repetidas;
 - si quien termina primero para el tiempo de los demás;
 - cuántas categorías tiene cada ronda, de tres a doce;
 - cuánto dura la escritura, de medio minuto a cinco, en tramos de quince segundos;
@@ -77,7 +78,7 @@ Con un juez fijo, quien juzga no escribe en ninguna ronda, así que tampoco pued
 
 ## Ganar
 
-Cada respuesta válida suma un punto. La partida se decide siempre cuando todos han juzgado el mismo número de rondas, porque hasta entonces unos han escrito más que otros: según lo que eligiera el anfitrión, gana quien vaya en cabeza al jugarse las rondas acordadas, o quien haya llegado a los puntos. Si hay empate en cabeza, la partida da otra ronda a cada juez y sigue hasta que alguien gane sin empate.
+Cada respuesta válida suma un punto, y si la mesa juega compartiendo las repetidas, la que nadie más escribió vale dos y la coincidencia sigue valiendo uno. La partida se decide siempre cuando todos han juzgado el mismo número de rondas, porque hasta entonces unos han escrito más que otros: según lo que eligiera el anfitrión, gana quien vaya en cabeza al jugarse las rondas acordadas, o quien haya llegado a los puntos. Si hay empate en cabeza, la partida da otra ronda a cada juez y sigue hasta que alguien gane sin empate.
 
 ## Si alguien se va
 

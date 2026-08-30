@@ -1494,14 +1494,16 @@ digraph (Spanish `"CH"`, `"LL"`) as one letter and the engine treats it as one.
   "endMode": "rounds",       // "rounds" | "score"
   "targetScore": 30,         // points that win when endMode is "score" (at least 1)
   "judgeMode": "rotating",   // "rotating" | "fixed" (one judge, named in the waiting room)
-  "stopsTheClock": false     // true = the first writer to finish ends the writing for everybody
+  "stopsTheClock": false,    // true = the first writer to finish ends the writing for everybody
+  "scoring": "unique"        // "unique" | "shared" (a coincidence scores, a lone answer doubles)
 }
 ```
 
 The house-rule codes this family exposes to the host are `categoriesEndMode` (`"type": "choice"`,
 values `rounds` / `score`), `categoriesJudgeMode` (`"type": "choice"`, values `rotating` /
-`fixed`), the toggle `categoriesStopClock`, and the numbers `categoriesPerRound`,
-`categoriesRoundSeconds`, `categoriesCycles` and `categoriesTargetScore`.
+`fixed`), `categoriesScoring` (`"type": "choice"`, values `unique` / `shared`), the toggle
+`categoriesStopClock`, and the numbers `categoriesPerRound`, `categoriesRoundSeconds`,
+`categoriesCycles` and `categoriesTargetScore`.
 The bounds above are the engine's, and they are checked against the values the HOST settled on as
 well as the manifest's: the lobby form's `min`/`max`/`step` are a courtesy to the person typing.
 
@@ -1530,7 +1532,10 @@ game. Bots are not supported in this family.
 - At review the engine marks each answer with its two hints and rejects the blanks, then the judge
   rules one category at a time. Every written answer needs a verdict — `accepted`, `rejected` or
   `duplicate` — and a ruling that leaves one out is refused rather than silently costing a point.
-- Each accepted answer scores `pointsPerAnswer`; rejected and duplicate answers score nothing.
+- Under `"scoring": "unique"` each accepted answer scores `pointsPerAnswer`, and rejected and
+  duplicate answers score nothing. Under `"shared"` an accepted answer is worth double and a
+  duplicate still scores `pointsPerAnswer`, so writing something always beats writing nothing.
+  A rejected answer scores nothing either way: the judge said it was not an answer.
 - The match is decided once every judge has taken the rounds they were owed, whichever ending is
   in force: after `cycles` under `"rounds"`, or as soon as the leader has reached `targetScore`
   under `"score"`. With a rotating judge that moment is the end of a complete rotation, because

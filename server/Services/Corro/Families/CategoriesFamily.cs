@@ -140,6 +140,11 @@ public sealed class CategoriesFamily : IGameFamily
 		{
 			throw new InvalidOperationException($"{source}.targetScore must be at least 1.");
 		}
+		if (!HouseRuleCatalog.CategoriesScoringModes.Contains(rules.Scoring))
+		{
+			throw new InvalidOperationException(
+				$"{source}.scoring must be one of {string.Join(", ", HouseRuleCatalog.CategoriesScoringModes)}.");
+		}
 		if (!HouseRuleCatalog.CategoriesJudgeModes.Contains(rules.JudgeMode))
 		{
 			throw new InvalidOperationException(
