@@ -255,6 +255,45 @@ public class CategoriesRulebookTests
 		Assert.DoesNotContain("p0", CategoriesRulebook.Contenders(state, fixedJudge).Select(p => p.PlayerId));
 	}
 
+	/// <summary>The two endings must not collapse into each other: a match set to play a number of
+	/// rounds is over when those rounds are played, whatever anybody scored on the way. The target
+	/// score keeps its figure — switching back to it needs no retyping — and decides nothing.</summary>
+	[Theory]
+	[InlineData("rotating")]
+	[InlineData("fixed")]
+	public void A_match_played_to_rounds_ignores_the_target_score_entirely(string judgeMode)
+	{
+		var byRounds = Rules with
+		{
+			JudgeMode = judgeMode,
+			EndMode = "rounds",
+			Cycles = 2,
+			TargetScore = 5,
+		};
+		var state = CategoriesRulebook.CreateInitialState(new[] { "p0", "p1", "p2" }, Deck(), byRounds);
+		var seats = new[] { "p0", "p1", "p2" };
+		// Miles past the target, in the very first round.
+		state.Players.First(player => player.PlayerId == "p1").Score = 500;
+
+		var first = CategoriesRulebook.CompleteRound(state, seats, Deck(), byRounds);
+
+		Assert.False(first.GameOver);
+		Assert.False(first.TieBreakerStarted);
+
+		// Play out what this table actually agreed to: two rounds under a fixed judge, two full
+		// rotations (six rounds) under a rotating one. Only the last of them ends the match.
+		var rounds = judgeMode == "fixed" ? 1 : 5;
+		CategoriesRulebook.RoundAdvance? last = null;
+		for (var round = 0; round < rounds; round++)
+		{
+			last = CategoriesRulebook.CompleteRound(state, seats, Deck(), byRounds);
+			if (round < rounds - 1) Assert.False(last.GameOver);
+		}
+
+		Assert.True(last!.GameOver);
+		Assert.Equal("p1", last.WinnerId);
+	}
+
 	[Fact]
 	public void Playing_to_a_score_ends_the_match_on_the_rotation_that_reaches_it()
 	{
