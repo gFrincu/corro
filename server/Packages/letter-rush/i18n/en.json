@@ -5,6 +5,7 @@
     "categoriesEndMode": "When the match ends",
     "categoriesEndModeRounds": "After the rounds are played",
     "categoriesEndModeScore": "On reaching the points",
+    "categoriesStopClock": "Finishing first stops the clock for everybody",
     "categoriesJudgeMode": "Who judges",
     "categoriesJudgeModeRotating": "It passes each round",
     "categoriesJudgeModeFixed": "The same player all match",

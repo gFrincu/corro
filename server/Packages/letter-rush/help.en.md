@@ -19,7 +19,7 @@ The host chooses one shared content language when creating the game and may chan
 Your sheet is one text box per category, each labelled with its category. Type one answer in each. Enter moves to the next box, and from the last box it takes you to **I have finished**.
 
 - Your answers are saved as you type them; you never have to send them.
-- **I have finished** ends your writing early. When everybody has finished, the round moves on without waiting for the clock.
+- **I have finished** ends your writing early. When everybody has finished, the round moves on without waiting for the clock. If the table plays with finishing first stopping the clock, the button says so and one person is enough: whatever was written by then is saved and judged all the same.
 - Press **L** for the round's letter and **R** for the time left. Nothing counts down out loud.
 - Inside an answer box those letters type themselves, so press **Ctrl+Shift+Space** first and then the letter: the next keystroke is a command instead of a character. A rising two-tone says the next key is a command, a falling one says it is over, and it lasts exactly one keystroke.
 
@@ -66,6 +66,7 @@ Each category's result is announced to the whole table, and you also hear privat
 Creating the table sets:
 
 - who judges: whether the job passes round the table or stays with one person;
+- whether finishing first stops the clock for everybody else;
 - how many categories each round has, from three to twelve;
 - how long the writing lasts, from half a minute to five, in quarter-minute steps;
 - how many rounds each judge takes before the scores are read, or the points that win.

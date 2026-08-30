@@ -46,6 +46,14 @@
       "nameKey": "rules.categoriesRoundSeconds"
     },
     {
+      "id": "categoriesStopClock",
+      "group": "categories",
+      "type": "toggle",
+      "default": false,
+      "editableByHost": true,
+      "nameKey": "rules.categoriesStopClock"
+    },
+    {
       "id": "categoriesJudgeMode",
       "group": "categories",
       "type": "choice",

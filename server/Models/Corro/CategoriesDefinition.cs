@@ -49,6 +49,12 @@ public sealed record CategoriesRulesConfig
 	/// <see cref="Services.Corro.HouseRuleCatalog.CategoriesJudgeModes"/>.</summary>
 	public string JudgeMode { get; init; } = "rotating";
 
+	/// <summary>Whether the first writer to finish ends the writing for EVERYONE. Off (the
+	/// default) each writer closes their own sheet and the round waits for the last of them or
+	/// for the clock; on, filling the sheet first is worth something, and the rest write against
+	/// a rival rather than against the clock.</summary>
+	public bool StopsTheClock { get; init; }
+
 	/// <summary>What ends the match: "rounds" (complete judge rotations, the classic) or "score"
 	/// (the first player past <see cref="TargetScore"/>). See
 	/// <see cref="Services.Corro.HouseRuleCatalog.CategoriesEndModes"/>.</summary>

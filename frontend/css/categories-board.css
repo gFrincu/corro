@@ -390,6 +390,15 @@
   min-height: 46px;
 }
 
+/* What the finish button will DO, where pressing it ends the writing for the whole table. Said
+   before the press, not after: a control that acts on everybody should say so on its face. */
+.categories-finish-note {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 .categories-control-hint {
   margin: 8px 0 0;
   padding: 9px 11px;

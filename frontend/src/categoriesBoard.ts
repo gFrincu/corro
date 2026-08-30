@@ -82,6 +82,7 @@ export class CategoriesBoard {
 	private readonly startButton: HTMLButtonElement;
 	private readonly finishButton: HTMLButtonElement;
 	private readonly finishHint: HTMLElement;
+	private readonly finishNote: HTMLElement;
 	private readonly reviewSection: HTMLElement;
 	private readonly reviewHeading: HTMLElement;
 	private readonly reviewCategory: HTMLElement;
@@ -171,6 +172,9 @@ export class CategoriesBoard {
 					<button type="button" class="btn categories-finish"></button>
 				</div>
 				<p id="categories-finish-hint" class="categories-control-hint" hidden></p>
+				<!-- What pressing it will DO, where that is more than closing my own sheet. Not the
+				     same line as the one above: that one explains why the button no longer acts. -->
+				<p class="categories-finish-note" hidden></p>
 			</section>
 			<section class="categories-review" aria-labelledby="categories-review-title" hidden>
 				<h3 id="categories-review-title"></h3>
@@ -202,6 +206,7 @@ export class CategoriesBoard {
 		this.startButton = this.required('.categories-start');
 		this.finishButton = this.required('.categories-finish');
 		this.finishHint = this.required('#categories-finish-hint');
+		this.finishNote = this.required('.categories-finish-note');
 		this.reviewSection = this.required('.categories-review');
 		this.reviewHeading = this.required('#categories-review-title');
 		this.reviewCategory = this.required('.categories-review__category');
@@ -463,6 +468,14 @@ export class CategoriesBoard {
 		// vanishing from under the hand that just pressed it.
 		const writer = writingPhase && !judging;
 		this.finishButton.hidden = !(writer && round.phase === 'writing');
+		// Where finishing first ends the writing for the whole table, the button says so BEFORE it
+		// is pressed. "I have finished" describes a private act; this one is not private, and the
+		// word for it belongs on the control that does it rather than in the announcement after.
+		const stops = gs.categoriesRules?.stopsTheClock === true;
+		this.finishButton.textContent = this.t(
+			stops ? 'categories_finish_button_stop' : 'categories_finish_button');
+		this.finishNote.textContent = stops ? this.t('categories_finish_hint_stop') : '';
+		this.finishNote.hidden = !stops || this.finishButton.hidden;
 		this.availability(
 			this.finishButton,
 			categoriesCanWrite(round, myId),
@@ -817,7 +830,6 @@ export class CategoriesBoard {
 		this.required('#categories-score-title').textContent = this.t('categories_scores_title');
 		this.required('#categories-now-title').textContent = this.t('categories_now_title');
 		this.startButton.textContent = this.t('categories_start_button');
-		this.finishButton.textContent = this.t('categories_finish_button');
 	}
 
 	private availability(button: HTMLButtonElement, available: boolean, hint: HTMLElement, reason: string): void {

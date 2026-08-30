@@ -353,6 +353,8 @@ export interface CategoriesRulesConfig {
   targetScore?: number;
   /** "rotating" (the seat passes each round) or "fixed" (one judge, named in the lobby). */
   judgeMode?: string;
+  /** Whether the first writer to finish ends the writing for everybody. */
+  stopsTheClock?: boolean;
 }
 
 // ── Journey family (Mil Millas genre) ───────────────────────────────────────

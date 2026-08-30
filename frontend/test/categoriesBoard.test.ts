@@ -578,3 +578,35 @@ test('T answers with the round headline and this player\'s own job', () => {
 	assert.match(h.announced.at(-1)!, /Round 1/);
 	assert.match(h.announced.at(-1)!, /Write one answer/i);
 });
+
+test('where finishing first stops the clock, the button says so before it is pressed', () => {
+	const plain = harness('p1', 'writing');
+	const finish = () => plain.element.querySelector<HTMLButtonElement>('.categories-finish')!;
+	const note = () => plain.element.querySelector<HTMLElement>('.categories-finish-note')!;
+
+	// The table this game always played: finishing closes my own sheet and says nothing more.
+	assert.equal(finish().textContent, translate('game.categories_finish_button'));
+	assert.equal(note().hidden, true);
+
+	(plain.state as any).categoriesRules.stopsTheClock = true;
+	plain.render();
+
+	// An act on everybody else belongs on the face of the control that performs it, not in the
+	// announcement afterwards.
+	assert.equal(finish().textContent, translate('game.categories_finish_button_stop'));
+	assert.equal(note().hidden, false);
+	assert.match(note().textContent!, /toda la mesa|whole table/i);
+});
+
+test('the note goes away with the button it explains', () => {
+	const h = harness('p1', 'writing');
+	(h.state as any).categoriesRules.stopsTheClock = true;
+	h.render();
+	assert.equal(h.element.querySelector<HTMLElement>('.categories-finish-note')!.hidden, false);
+
+	// Review: nobody is writing any more, so there is nothing to stop.
+	(h.state as any).categories.round.phase = 'review';
+	h.render();
+
+	assert.equal(h.element.querySelector<HTMLElement>('.categories-finish-note')!.hidden, true);
+});

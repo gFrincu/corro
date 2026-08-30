@@ -19,7 +19,7 @@ El anfitrión elige un idioma de contenido compartido al crear la partida y pued
 Tu hoja es un cuadro de texto por categoría, cada uno con su categoría como etiqueta. Escribe una respuesta en cada uno. Enter va al siguiente cuadro y, desde el último, te lleva a **He terminado**.
 
 - Tus respuestas se guardan mientras escribes; no tienes que enviarlas.
-- **He terminado** cierra tu escritura antes de tiempo. Cuando todos han terminado, la ronda avanza sin esperar al reloj.
+- **He terminado** cierra tu escritura antes de tiempo. Cuando todos han terminado, la ronda avanza sin esperar al reloj. Si la mesa juega a que quien termina primero para el tiempo, el botón lo dice y basta con que lo pulse una persona: lo escrito hasta ese momento se guarda y se juzga igual.
 - Pulsa **L** para la letra de la ronda y **R** para el tiempo que queda. Nada se cuenta atrás en voz alta.
 - Dentro de un cuadro de respuesta esas letras se escriben, así que pulsa antes **Ctrl+Mayús+Espacio** y luego la letra: la siguiente pulsación es un comando en vez de un carácter. Un bitono ascendente avisa de que la próxima tecla es un comando, uno descendente de que se acabó, y dura exactamente una pulsación.
 
@@ -66,6 +66,7 @@ El resultado de cada categoría se anuncia a toda la mesa, y además oyes en pri
 Al crear la mesa se ajustan:
 
 - quién juzga: si el puesto va rotando o lo lleva siempre la misma persona;
+- si quien termina primero para el tiempo de los demás;
 - cuántas categorías tiene cada ronda, de tres a doce;
 - cuánto dura la escritura, de medio minuto a cinco, en tramos de quince segundos;
 - cuántas rondas juzga cada juez antes del recuento, o los puntos con los que se gana.

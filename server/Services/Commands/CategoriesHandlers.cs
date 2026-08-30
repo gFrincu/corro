@@ -60,21 +60,35 @@ public static class CategoriesRoundFlow
 	public static string PlayerName(GameState state, string playerId)
 		=> state.Players.FirstOrDefault(player => player.Id == playerId)?.Name ?? playerId;
 
-	/// <summary>Close the writing phase and hand the round to the judge, whether the clock ran
-	/// out or the last writer finished early.</summary>
+	/// <summary>
+	/// Close the writing phase and hand the round to the judge. How it closed is what the table is
+	/// told: the clock ran out, the last writer finished, or — where the table plays that way —
+	/// somebody finished first and stopped the clock on everybody else.
+	/// </summary>
 	public static async Task<CategoriesActionResponse> BeginReviewAsync(
 		GameContext context,
 		string action,
-		bool timedOut)
+		bool timedOut,
+		Player? stoppedBy = null)
 	{
 		var state = context.GameState.Categories!;
 		CategoriesRulebook.BeginReview(state.Round);
 		context.GameState.CurrentTurn = state.Round.JudgeId;
 
-		await context.Announce(timedOut ? "game.categories_time_up" : "game.categories_all_finished", new()
+		var vars = new Dictionary<string, object>
 		{
 			["judge"] = PlayerName(context.GameState, state.Round.JudgeId),
-		});
+		};
+		if (stoppedBy is not null)
+		{
+			vars["player"] = stoppedBy.Name;
+			vars["actorId"] = stoppedBy.Id;
+		}
+		await context.Announce(
+			stoppedBy is not null ? "game.categories_clock_stopped"
+				: timedOut ? "game.categories_time_up"
+				: "game.categories_all_finished",
+			vars);
 		await AnnounceReviewPromptAsync(context);
 		return new CategoriesActionResponse { Action = action, ReviewStarted = true };
 	}
@@ -256,7 +270,7 @@ public sealed class CategoriesFinishWritingHandler : PlayerCommandHandler<Catego
 		Player player,
 		GameContext context)
 	{
-		if (CategoriesRoundFlow.RequireState(context, out var state, out _) is { } stateError)
+		if (CategoriesRoundFlow.RequireState(context, out var state, out var runtime) is { } stateError)
 		{
 			return stateError;
 		}
@@ -282,6 +296,16 @@ public sealed class CategoriesFinishWritingHandler : PlayerCommandHandler<Catego
 		}
 
 		state.Round.FinishedWriterIds.Add(player.Id);
+
+		// Where the table plays that way, finishing first ends the writing for everybody: filling
+		// the sheet fastest is the point, and the others were racing that rather than the clock.
+		// Their answers are already on the server — the sheet saves as it is typed — so what stops
+		// is the writing, not the record of it.
+		if (runtime.Rules.StopsTheClock)
+		{
+			return await CategoriesRoundFlow.BeginReviewAsync(context, "finish", timedOut: false, stoppedBy: player);
+		}
+
 		var writers = CategoriesRulebook.Writers(state, state.Round);
 		var remaining = writers.Count - state.Round.FinishedWriterIds.Count;
 		await context.Announce("game.categories_writer_finished", new()

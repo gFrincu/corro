@@ -4,6 +4,7 @@ using CorroServer.Models.Corro;
 using CorroServer.Services.Commands;
 using CorroServer.Services.Corro;
 using CorroServer.Services.Corro.Families;
+using CorroServer.Services.Rules;
 
 namespace CorroServer.Tests;
 
@@ -15,18 +16,20 @@ public class CategoriesRoundFlowTests
 		public string CategoryId(int index) => Round.Prompts[index].CategoryId;
 	}
 
-	private static async Task<Table> NewTable(int players = 3, int? roundSeconds = null)
+	private static async Task<Table> NewTable(
+		int players = 3,
+		int? roundSeconds = null,
+		bool stopsTheClock = false)
 	{
 		var definition = await new CorroPackageLoader().LoadAsync(CorroTestPaths.PackageDir("letter-rush"));
-		if (roundSeconds is { } seconds)
+		if (roundSeconds is { } seconds || stopsTheClock)
 		{
+			var rules = definition.Manifest.CategoriesRules ?? new CategoriesRulesConfig();
+			if (roundSeconds is { } chosen) rules = rules with { RoundSeconds = chosen };
+			if (stopsTheClock) rules = rules with { StopsTheClock = true };
 			definition = definition with
 			{
-				Manifest = definition.Manifest with
-				{
-					CategoriesRules = (definition.Manifest.CategoriesRules ?? new CategoriesRulesConfig())
-						with { RoundSeconds = seconds },
-				},
+				Manifest = definition.Manifest with { CategoriesRules = rules },
 			};
 		}
 		var seats = Enumerable.Range(0, players)
@@ -372,5 +375,62 @@ public class CategoriesRoundFlowTests
 		Assert.Contains(TestFixtures.Announcer(table.Context).Sent,
 			sent => sent.Key == "game.categories_final_score");
 		Assert.Contains(TestFixtures.Announcer(table.Context).Sent, sent => sent.Key == "game.game_over");
+	}
+	// ── Stopping the clock ────────────────────────────────────────────────────
+
+	[Fact]
+	public async Task Where_the_table_plays_that_way_the_first_to_finish_ends_the_writing()
+	{
+		var table = await NewTable(stopsTheClock: true);
+		var writers = CategoriesRulebook.Writers(table.Categories, table.Round);
+		await Start(table, table.Round.JudgeId);
+		await Write(table, writers[0], "Apple");
+		// The other writer got as far as one answer before the race was lost.
+		await Write(table, writers[1], "Avocado");
+
+		var response = await Finish(table, writers[0]);
+
+		Assert.True(Assert.IsType<CategoriesActionResponse>(response).ReviewStarted);
+		Assert.Equal(CategoriesRoundPhase.Review, table.Round.Phase);
+		// What stops is the writing, not the record of it: the sheet saves as it is typed, so
+		// everything already sent is there to be judged.
+		Assert.Equal(
+			"Avocado",
+			table.Round.Prompts[0].Answers.First(answer => answer.PlayerId == writers[1]).Text);
+		// The table is told WHY it stopped, and by whom.
+		var stopped = Assert.Single(
+			TestFixtures.Announcer(table.Context).Sent,
+			sent => sent.Key == "game.categories_clock_stopped");
+		Assert.Equal(writers[0], stopped.Vars!["actorId"]);
+	}
+
+	[Fact]
+	public async Task Stopping_the_clock_leaves_nobody_still_writing_into_a_closed_round()
+	{
+		var table = await NewTable(stopsTheClock: true);
+		var writers = CategoriesRulebook.Writers(table.Categories, table.Round);
+		await Start(table, table.Round.JudgeId);
+		await Finish(table, writers[0]);
+
+		var late = await Write(table, writers[1], "Anchovy");
+
+		Assert.Equal("CATEGORIES_WRONG_PHASE", Assert.IsType<ErrorResponse>(late).Code);
+	}
+
+	[Fact]
+	public async Task Without_that_rule_finishing_first_closes_only_my_own_sheet()
+	{
+		var table = await NewTable();
+		var writers = CategoriesRulebook.Writers(table.Categories, table.Round);
+		await Start(table, table.Round.JudgeId);
+
+		var response = await Finish(table, writers[0]);
+
+		Assert.False(Assert.IsType<CategoriesActionResponse>(response).ReviewStarted);
+		Assert.Equal(CategoriesRoundPhase.Writing, table.Round.Phase);
+		Assert.IsType<CategoriesActionResponse>(await Write(table, writers[1], "Anchovy"));
+		Assert.DoesNotContain(
+			TestFixtures.Announcer(table.Context).Sent,
+			sent => sent.Key == "game.categories_clock_stopped");
 	}
 }

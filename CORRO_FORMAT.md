@@ -1493,14 +1493,15 @@ digraph (Spanish `"CH"`, `"LL"`) as one letter and the engine treats it as one.
   "cycles": 1,               // rounds EACH judge takes before scoring (at least 1)
   "endMode": "rounds",       // "rounds" | "score"
   "targetScore": 30,         // points that win when endMode is "score" (at least 1)
-  "judgeMode": "rotating"    // "rotating" | "fixed" (one judge, named in the first round)
+  "judgeMode": "rotating",   // "rotating" | "fixed" (one judge, named in the waiting room)
+  "stopsTheClock": false     // true = the first writer to finish ends the writing for everybody
 }
 ```
 
 The house-rule codes this family exposes to the host are `categoriesEndMode` (`"type": "choice"`,
 values `rounds` / `score`), `categoriesJudgeMode` (`"type": "choice"`, values `rotating` /
-`fixed`) and the numbers `categoriesPerRound`, `categoriesRoundSeconds`, `categoriesCycles` and
-`categoriesTargetScore`.
+`fixed`), the toggle `categoriesStopClock`, and the numbers `categoriesPerRound`,
+`categoriesRoundSeconds`, `categoriesCycles` and `categoriesTargetScore`.
 The bounds above are the engine's, and they are checked against the values the HOST settled on as
 well as the manifest's: the lobby form's `min`/`max`/`step` are a courtesy to the person typing.
 
@@ -1523,7 +1524,9 @@ game. Bots are not supported in this family.
   the command is idempotent and a lost message costs nothing. An answer arriving after the deadline
   does not count: the crossing closes the round instead.
 - A writer may finish early. When every writer has, the round moves to review without waiting the
-  clock out.
+  clock out. Under `stopsTheClock` the FIRST of them ends the writing for everybody: what stops is
+  the writing, not the record of it, since the sheet is stored as it is typed and everything
+  already sent is judged. The table is told who stopped it.
 - At review the engine marks each answer with its two hints and rejects the blanks, then the judge
   rules one category at a time. Every written answer needs a verdict — `accepted`, `rejected` or
   `duplicate` — and a ruling that leaves one out is refused rather than silently costing a point.

@@ -145,8 +145,8 @@ export function buildCategoriesRulesLines(rules: CategoriesRulesConfig | null | 
 		t('game.categories_rules_points', { points: r.pointsPerAnswer }),
 		ending,
 	];
-	// Said only when the judge does NOT rotate: rotating is what this game always did, and the
-	// surface names the round's judge anyway.
+	// Both are said only when they are ON: what this game always did needs no line of its own.
+	if (r.stopsTheClock) lines.push(t('game.categories_rules_stop_clock'));
 	if (r.judgeMode === 'fixed') lines.push(t('game.categories_rules_fixed_judge'));
 	return lines;
 }

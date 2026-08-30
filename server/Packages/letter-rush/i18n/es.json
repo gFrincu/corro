@@ -5,6 +5,7 @@
     "categoriesEndMode": "Cuándo termina la partida",
     "categoriesEndModeRounds": "Al jugar las rondas",
     "categoriesEndModeScore": "Al llegar a los puntos",
+    "categoriesStopClock": "Quien termina primero para el tiempo de todos",
     "categoriesJudgeMode": "Quién juzga",
     "categoriesJudgeModeRotating": "Va cambiando cada ronda",
     "categoriesJudgeModeFixed": "El mismo durante toda la partida",

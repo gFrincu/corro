@@ -320,6 +320,46 @@ test('a table with one judge names them in the room, and the job never passes', 
 	await flushAxeAudit(carla);
 });
 
+test('finishing first can stop the clock for the whole table', async ({ browser }) => {
+	const ana = await newPlayerPage(browser, 'es-ES');
+	const berto = await newPlayerPage(browser, 'es-ES');
+	const carla = await newPlayerPage(browser, 'es-ES');
+
+	const code = await createGame(ana, 'Ana', BOARD, {
+		maxPlayers: 3,
+		contentLanguage: 'es',
+		houseRules: { categoriesStopClock: true, categoriesPerRound: 3 },
+	});
+	await joinGame(berto, code, 'Berto');
+	await joinGame(carla, code, 'Carla');
+	await startGame(ana, [ana, berto, carla]);
+	await ana.locator('.categories-start').click();
+	await expect(ana.locator('.categories-timer')).toBeVisible();
+
+	// The control says what it will do BEFORE it is pressed: this one acts on everybody.
+	const finish = berto.locator('.categories-finish');
+	await expect(finish).toHaveText(/parar el tiempo/i);
+	await expect(berto.locator('.categories-finish-note')).toContainText('toda la mesa');
+	await flushAxeAudit(berto);
+
+	// Carla is still writing when Berto finishes.
+	await sheetInput(carla, 0).fill('araña');
+	await carla.locator('.categories-finish').focus();
+	await sheetInput(berto, 0).fill('avestruz');
+	await finish.click();
+
+	// The writing stops for everybody, and the table is told who stopped it.
+	await expectAnnouncement(carla, /Berto/);
+	await expect(ana.locator('.categories-review')).toBeVisible();
+	await expect(carla.locator('.categories-sheet')).toBeHidden();
+	// What stopped is the writing, not the record of it: the answer Carla had already typed is
+	// there to be judged, beside the one that ended the round.
+	await expect(answerRows(ana).filter({ hasText: 'araña' })).toHaveCount(1);
+	await expect(answerRows(ana).filter({ hasText: 'avestruz' })).toHaveCount(1);
+	await flushAxeAudit(ana);
+	await flushAxeAudit(carla);
+});
+
 test('the surface answers the reading keys without a screen reader having to hunt', async ({ browser }) => {
 	const ana = await newPlayerPage(browser, 'en-US');
 	const berto = await newPlayerPage(browser, 'en-US');
