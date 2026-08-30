@@ -70,9 +70,14 @@ export class JudgePanel {
 		}
 	}
 
-	/** The whole room hears who was named (the repaint that carries it is silent). */
+	/**
+	 * The room hears who was named — everybody except the person who named them. The host moved a
+	 * radio, and a radio says its own name and its own state as it is chosen: repeating it through
+	 * the live region is the same fact twice, one immediately after the other. Everyone else
+	 * changed nothing and would otherwise learn it only by going back to read the panel.
+	 */
 	announceAssigned(data: { playerName?: string | null }): void {
-		if (!this.deps) return;
+		if (!this.deps || this.deps.isHost()) return;
 		this.deps.announce(data.playerName
 			? this.deps.t('lobby.judgeNamed').replace('{{player}}', data.playerName)
 			: this.deps.t('lobby.judgeCleared'));

@@ -113,13 +113,23 @@ test('a guest reads the choice and cannot move it, without the disabled attribut
 });
 
 test('the room hears who was named, and hears when nobody is', () => {
-	const h = harness(true);
+	const guest = harness(false);
 
-	h.panel.announceAssigned({ playerName: 'Cora' });
-	h.panel.announceAssigned({ playerName: null });
+	guest.panel.announceAssigned({ playerName: 'Cora' });
+	guest.panel.announceAssigned({ playerName: null });
 
-	assert.match(h.announced[0], /Cora/);
-	assert.equal(h.announced[1], translate('lobby.judgeCleared'));
+	assert.match(guest.announced[0], /Cora/);
+	assert.equal(guest.announced[1], translate('lobby.judgeCleared'));
+});
+
+test('the host is not told what the radio they just moved already said', () => {
+	// Choosing a radio speaks its name and its state on the spot. Saying it again through the
+	// live region is the same fact twice, back to back, for the one person who cannot need it.
+	const host = harness(true);
+
+	host.panel.announceAssigned({ playerName: 'Cora' });
+
+	assert.deepEqual(host.announced, []);
 });
 
 test('an authoritative repaint gives the keyboard back where it was', () => {
