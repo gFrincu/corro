@@ -4,7 +4,7 @@ Todo el mundo escribe a la vez. Cada ronda reparte una letra y una lista de cate
 
 ## El juez de la ronda
 
-Cada ronda la juzga un jugador, y el puesto rota para que todos juzguen el mismo número de veces. El juez:
+Cada ronda la juzga un jugador. Normalmente el puesto rota, para que todos juzguen el mismo número de veces; si la mesa lo prefiere, juzga siempre la misma persona, y quien creó la mesa la elige en la sala de espera, antes de empezar. El juez:
 
 - pone el reloj en marcha cuando la mesa ha leído las categorías; la letra se reparte con el reloj, nunca antes;
 - espera mientras los demás escriben;
@@ -65,9 +65,12 @@ El resultado de cada categoría se anuncia a toda la mesa, y además oyes en pri
 
 Al crear la mesa se ajustan:
 
+- quién juzga: si el puesto va rotando o lo lleva siempre la misma persona;
 - cuántas categorías tiene cada ronda, de tres a doce;
 - cuánto dura la escritura, de medio minuto a cinco, en tramos de quince segundos;
-- cómo termina la partida: al jugar unas cuantas rondas por juez, o en cuanto alguien llega a los puntos acordados.
+- cuántas rondas juzga cada juez antes del recuento, o los puntos con los que se gana.
+
+Con un juez fijo, quien juzga no escribe en ninguna ronda, así que tampoco puede ganar: hace de árbitro y queda fuera del marcador.
 
 **Ctrl+Mayús+F1** las lee dentro de la partida, así que nadie tiene que recordar lo que se acordó en la sala de espera.
 
@@ -78,3 +81,5 @@ Cada respuesta válida suma un punto. La partida se decide siempre cuando todos 
 ## Si alguien se va
 
 Si el juez se va a mitad de ronda, la ronda vuelve a empezar y juzga el siguiente jugador: las respuestas se escribieron para una mesa que ya no existe. Si se van tantos que quedan menos de tres, la partida termina y gana quien vaya en cabeza.
+
+Con juez fijo no hay relevo: si quien arbitra se va, la partida termina ahí y se la lleva quien vaya en cabeza, o acaba en empate si varios lo están.

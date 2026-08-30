@@ -203,6 +203,10 @@ public sealed record FamilyStartContext
 	/// in a row stops meeting the same cards. Empty for a table that has never played this deck.
 	/// </summary>
 	public IReadOnlyCollection<string> AlreadyDealt { get; init; } = Array.Empty<string>();
+
+	/// <summary>Categories with a fixed judge: the player the HOST named in the waiting room.
+	/// Null = nobody was named, so the first seat takes it.</summary>
+	public string? FixedJudgeId { get; init; }
 }
 
 /// <summary>What a family hands back at game start. Null members keep the service defaults.</summary>

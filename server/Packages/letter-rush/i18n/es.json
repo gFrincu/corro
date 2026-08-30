@@ -5,6 +5,9 @@
     "categoriesEndMode": "Cuándo termina la partida",
     "categoriesEndModeRounds": "Al jugar las rondas",
     "categoriesEndModeScore": "Al llegar a los puntos",
+    "categoriesJudgeMode": "Quién juzga",
+    "categoriesJudgeModeRotating": "Va cambiando cada ronda",
+    "categoriesJudgeModeFixed": "El mismo durante toda la partida",
     "categoriesCycles": "Rondas que juzga cada juez (todos juzgan la misma cantidad)",
     "categoriesTargetScore": "Puntos para ganar"
   },

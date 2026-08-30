@@ -154,6 +154,13 @@ public static class HouseRuleCatalog
 	public static readonly IReadOnlySet<string> CategoriesEndModes =
 		new HashSet<string> { "rounds", "score" };
 
+	/// <summary>What the "categoriesJudgeMode" choice rule accepts: "rotating" = the seat passes
+	/// each round so everybody judges and writes the same number of times (the classic), "fixed" =
+	/// one player named by the host judges the whole match, writes in none of it, and is therefore
+	/// not playing for the win.</summary>
+	public static readonly IReadOnlySet<string> CategoriesJudgeModes =
+		new HashSet<string> { "rotating", "fixed" };
+
 	private static readonly Dictionary<string, Func<CategoriesRulesConfig, JsonElement, CategoriesRulesConfig>> CategoriesAppliers = new()
 	{
 		["categoriesPerRound"] = (r, v) => r with { CategoriesPerRound = v.GetInt32() },
@@ -164,6 +171,10 @@ public static class HouseRuleCatalog
 			: r,
 		["categoriesCycles"] = (r, v) => r with { Cycles = v.GetInt32() },
 		["categoriesTargetScore"] = (r, v) => r with { TargetScore = v.GetInt32() },
+		["categoriesJudgeMode"] = (r, v) => v.ValueKind == JsonValueKind.String
+											  && CategoriesJudgeModes.Contains(v.GetString()!)
+			? r with { JudgeMode = v.GetString()! }
+			: r,
 	};
 
 	/// <summary>Whether the engine knows this CATEGORIES rule code.</summary>
@@ -188,6 +199,7 @@ public static class HouseRuleCatalog
 			["forbiddenEndMode"] = ForbiddenEndModes,
 			[ForbiddenModeRule] = ForbiddenModes,
 			["categoriesEndMode"] = CategoriesEndModes,
+			["categoriesJudgeMode"] = CategoriesJudgeModes,
 		};
 
 	/// <summary>

@@ -348,9 +348,11 @@ export interface CategoriesRulesConfig {
   categoriesPerRound: number;
   pointsPerAnswer: number;
   cycles: number;
-  /** "rounds" (complete judge rotations) or "score" (first past the target). */
+  /** "rounds" (rounds each judge takes) or "score" (first past the target). */
   endMode?: string;
   targetScore?: number;
+  /** "rotating" (the seat passes each round) or "fixed" (one judge, named in the lobby). */
+  judgeMode?: string;
 }
 
 // ── Journey family (Mil Millas genre) ───────────────────────────────────────
@@ -991,6 +993,8 @@ export interface GameInfo {
   seats?: LobbySeatInfo[] | null;
   /** Journey team mode: how many equal teams (>= 2); absent/null = individual play. */
   teamCount?: number | null;
+  /** Categories with a fixed judge: the player the host named to referee the whole match. */
+  fixedJudgeId?: string | null;
   /** Whether the host currently offers the optional voice room. */
   voiceChatEnabled?: boolean;
 }

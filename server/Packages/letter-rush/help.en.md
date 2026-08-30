@@ -4,7 +4,7 @@ Everyone writes at the same time. A round deals one letter and a list of categor
 
 ## The round's judge
 
-One player judges each round, and the job rotates so everybody judges the same number of times. The judge:
+One player judges each round. The job usually rotates, so everybody judges the same number of times; if the table prefers, the same person judges throughout, and whoever created the table names them in the waiting room before play starts. The judge:
 
 - starts the clock when the table has read the categories; the letter is dealt with the clock, never before it;
 - waits while the others write;
@@ -65,9 +65,12 @@ Each category's result is announced to the whole table, and you also hear privat
 
 Creating the table sets:
 
+- who judges: whether the job passes round the table or stays with one person;
 - how many categories each round has, from three to twelve;
 - how long the writing lasts, from half a minute to five, in quarter-minute steps;
-- how the match ends: after a number of rounds per judge, or as soon as somebody reaches the agreed points.
+- how many rounds each judge takes before the scores are read, or the points that win.
+
+With a fixed judge, whoever judges writes in no round at all, so they cannot win either: they referee, and stay out of the scoring.
 
 **Ctrl+Shift+F1** reads them out during the match, so nobody has to remember what the lobby agreed.
 
@@ -78,3 +81,5 @@ Each valid answer scores one point. The match is always decided once everybody h
 ## Leaving
 
 If the judge leaves mid-round, the round starts again with the next player judging: the answers were written for a table that no longer exists. If so many players leave that fewer than three remain, the match ends and the leader takes it.
+
+With a fixed judge there is no replacement: if the referee leaves, the match ends there and goes to whoever leads, or ends level if several do.

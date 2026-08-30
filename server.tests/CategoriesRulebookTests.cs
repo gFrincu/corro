@@ -199,6 +199,63 @@ public class CategoriesRulebookTests
 	}
 
 	[Fact]
+	public void A_fixed_judge_keeps_the_seat_and_the_writers_never_take_a_turn_at_it()
+	{
+		var fixedJudge = Rules with { JudgeMode = "fixed", Cycles = 3 };
+		// The room named p2 in the waiting room, so the very first round is already theirs.
+		var state = CategoriesRulebook.CreateInitialState(
+			new[] { "p0", "p1", "p2" }, Deck(), fixedJudge, firstJudgeId: "p2");
+		var seats = new[] { "p0", "p1", "p2" };
+
+		Assert.Equal("p2", state.Round.JudgeId);
+
+		CategoriesRulebook.CompleteRound(state, seats, Deck(), fixedJudge);
+		Assert.Equal("p2", state.Round.JudgeId);
+		CategoriesRulebook.CompleteRound(state, seats, Deck(), fixedJudge);
+
+		Assert.Equal("p2", state.Round.JudgeId);
+		Assert.Equal(3, state.Round.RoundNumber);
+		// Everybody but the judge writes every round, so the writers are the whole field.
+		Assert.Equal(new[] { "p0", "p1" }, CategoriesRulebook.Writers(state, state.Round));
+	}
+
+	[Fact]
+	public void With_a_fixed_judge_the_count_is_rounds_because_nobody_else_ever_judges()
+	{
+		// Under a rotating judge this same figure would be three rounds per unit; here the judge
+		// takes every one of them, so two cycles are two rounds and the match ends on the second.
+		var fixedJudge = Rules with { JudgeMode = "fixed", Cycles = 2 };
+		var state = CategoriesRulebook.CreateInitialState(new[] { "p0", "p1", "p2" }, Deck(), fixedJudge);
+		var seats = new[] { "p0", "p1", "p2" };
+		state.Players.First(player => player.PlayerId == "p1").Score = 4;
+
+		var first = CategoriesRulebook.CompleteRound(state, seats, Deck(), fixedJudge);
+		var second = CategoriesRulebook.CompleteRound(state, seats, Deck(), fixedJudge);
+
+		Assert.False(first.GameOver);
+		Assert.True(second.GameOver);
+		Assert.Equal("p1", second.WinnerId);
+	}
+
+	[Fact]
+	public void A_fixed_judge_cannot_win_the_match_they_refereed()
+	{
+		var fixedJudge = Rules with { JudgeMode = "fixed", Cycles = 1 };
+		var state = CategoriesRulebook.CreateInitialState(new[] { "p0", "p1", "p2" }, Deck(), fixedJudge);
+		var seats = new[] { "p0", "p1", "p2" };
+		// A score the judge could not have earned — they never wrote — but which would otherwise
+		// lead the field and take the match.
+		state.Players.First(player => player.PlayerId == "p0").Score = 99;
+		state.Players.First(player => player.PlayerId == "p2").Score = 3;
+
+		var advance = CategoriesRulebook.CompleteRound(state, seats, Deck(), fixedJudge);
+
+		Assert.True(advance.GameOver);
+		Assert.Equal("p2", advance.WinnerId);
+		Assert.DoesNotContain("p0", CategoriesRulebook.Contenders(state, fixedJudge).Select(p => p.PlayerId));
+	}
+
+	[Fact]
 	public void Playing_to_a_score_ends_the_match_on_the_rotation_that_reaches_it()
 	{
 		var toScore = Rules with { EndMode = "score", TargetScore = 10, Cycles = 99 };

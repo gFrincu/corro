@@ -5,6 +5,9 @@
     "categoriesEndMode": "When the match ends",
     "categoriesEndModeRounds": "After the rounds are played",
     "categoriesEndModeScore": "On reaching the points",
+    "categoriesJudgeMode": "Who judges",
+    "categoriesJudgeModeRotating": "It passes each round",
+    "categoriesJudgeModeFixed": "The same player all match",
     "categoriesCycles": "Rounds each judge takes (everybody judges the same number)",
     "categoriesTargetScore": "Points that win"
   },

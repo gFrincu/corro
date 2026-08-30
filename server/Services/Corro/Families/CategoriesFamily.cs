@@ -140,6 +140,11 @@ public sealed class CategoriesFamily : IGameFamily
 		{
 			throw new InvalidOperationException($"{source}.targetScore must be at least 1.");
 		}
+		if (!HouseRuleCatalog.CategoriesJudgeModes.Contains(rules.JudgeMode))
+		{
+			throw new InvalidOperationException(
+				$"{source}.judgeMode must be one of {string.Join(", ", HouseRuleCatalog.CategoriesJudgeModes)}.");
+		}
 	}
 
 	/// <summary>One locale's deck: enough distinct categories to keep a match from repeating
@@ -222,7 +227,10 @@ public sealed class CategoriesFamily : IGameFamily
 		};
 
 		var playerIds = start.Players.Select(player => player.Id).ToList();
-		var categories = CategoriesRulebook.CreateInitialState(playerIds, deck, rules);
+		// Only a fixed judge is somebody's to name, and the room named them in the waiting room.
+		// Under a rotating judge nobody chooses: the seat passes and everybody judges equally.
+		var firstJudgeId = CategoriesRulebook.HasFixedJudge(rules) ? start.FixedJudgeId : null;
+		var categories = CategoriesRulebook.CreateInitialState(playerIds, deck, rules, firstJudgeId);
 
 		var state = new GameState
 		{
@@ -356,7 +364,12 @@ public sealed class CategoriesFamily : IGameFamily
 
 		if (categories.Players.Count < MinimumPlayers)
 		{
-			var leader = categories.Players
+			// The leader among those who were playing for it: a fixed judge never wrote an answer,
+			// so an abandoned match cannot be awarded to them either.
+			var abandonedRules = (context.FamilyRuntime as CategoriesRuntime)?.Rules
+				?? state.CategoriesRules
+				?? new CategoriesRulesConfig();
+			var leader = CategoriesRulebook.Contenders(categories, abandonedRules)
 				.OrderByDescending(entry => entry.Score)
 				.FirstOrDefault();
 			FinishGame(state, leader?.PlayerId);
@@ -381,12 +394,50 @@ public sealed class CategoriesFamily : IGameFamily
 			return;
 		}
 
-		// The judge left mid-round. Restart the round under a new judge rather than trying to
-		// finish a review nobody saw: the answers were written for a table that no longer exists,
-		// and the replacement judge would be ruling on their own writing.
 		var rules = (context.FamilyRuntime as CategoriesRuntime)?.Rules
 			?? state.CategoriesRules
 			?? new CategoriesRulesConfig();
+
+		// A named judge has no replacement. Passing the job to the next seat would take somebody
+		// who was PLAYING and make them the referee, which ends their match on the spot: the judge
+		// never writes, so they can never score again, and the points they had stop counting. The
+		// table agreed on one person refereeing and everybody else competing; the moment that
+		// person goes, that match no longer exists, so it closes where it stands.
+		if (CategoriesRulebook.HasFixedJudge(rules))
+		{
+			var contenders = CategoriesRulebook.Contenders(categories, rules).ToList();
+			var best = contenders.Count == 0 ? 0 : contenders.Max(entry => entry.Score);
+			var leaders = contenders.Where(entry => entry.Score == best).ToList();
+			// Level at the top is a real ending here, and the rotating judge never had one: a tie
+			// there simply adds another rotation. Nobody is handed the match for sitting earlier
+			// in the list, so the winner is named only when there IS one.
+			FinishGame(state, leaders.Count == 1 ? leaders[0].PlayerId : null);
+			await context.Announce("game.categories_judge_left_fixed", new()
+			{
+				["player"] = player.Name,
+			});
+			if (leaders.Count == 1)
+			{
+				var winner = state.Players.First(seat => seat.Id == leaders[0].PlayerId);
+				await context.Announce("game.game_over", new()
+				{
+					["winner"] = winner.Name,
+					["actorId"] = winner.Id,
+				});
+			}
+			else
+			{
+				// Who shares the top is on the end screen, with their scores. The server cannot
+				// speak the list: it would have to join the names in ONE language for a table
+				// that reads in several.
+				await context.Announce("game.categories_ends_level", new() { ["score"] = best });
+			}
+			return;
+		}
+
+		// The judge left mid-round. Restart the round under a new judge rather than trying to
+		// finish a review nobody saw: the answers were written for a table that no longer exists,
+		// and the replacement judge would be ruling on their own writing.
 		var deck = state.CategoryDeck
 			?? throw new InvalidOperationException("categories deck missing from authoritative state");
 		var judgeId = CategoriesRulebook.NextJudge(categories, seatOrder, player.Id);
@@ -408,15 +459,21 @@ public sealed class CategoriesFamily : IGameFamily
 	internal static void FinishGame(GameState state, string? winnerId)
 	{
 		var categories = state.Categories!;
-		var placings = categories.Players
-			.OrderByDescending(entry => entry.Score)
-			.Select(entry => entry.PlayerId)
-			.ToList();
+		var rules = state.CategoriesRules ?? new CategoriesRulesConfig();
+		// A fixed judge is not placed among the players: they refereed the match and wrote in none
+		// of it, so ranking them by a score they could never earn would read as having lost it.
+		var contenders = CategoriesRulebook.Contenders(categories, rules).ToList();
+		// The place comes from the SCORE, so equal scores share it. Reading it off the sorted
+		// position instead printed "first" and "second" for two players level on the same number,
+		// which is a loss nobody suffered — and a named judge leaving can now end a match level,
+		// where the rotating judge always played one more rotation instead.
 		foreach (var participant in state.Players)
 		{
 			participant.Status = PlayerStatus.Finished;
-			var place = placings.IndexOf(participant.Id);
-			participant.FinishPlace = place >= 0 ? place + 1 : placings.Count + 1;
+			var entry = contenders.FirstOrDefault(contender => contender.PlayerId == participant.Id);
+			participant.FinishPlace = entry is null
+				? contenders.Count + 1
+				: 1 + contenders.Count(other => other.Score > entry.Score);
 		}
 		categories.Round.Phase = CategoriesRoundPhase.Finished;
 		state.CurrentTurn = null;

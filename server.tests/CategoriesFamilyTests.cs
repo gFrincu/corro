@@ -166,7 +166,7 @@ public class CategoriesFamilyTests
 		Assert.Equal(
 			new[]
 			{
-				"categoriesPerRound", "categoriesRoundSeconds",
+				"categoriesPerRound", "categoriesRoundSeconds", "categoriesJudgeMode",
 				"categoriesEndMode", "categoriesCycles", "categoriesTargetScore",
 			},
 			offered);
@@ -408,6 +408,88 @@ public class CategoriesFamilyTests
 		Assert.DoesNotContain(game.State.Categories.Players, player => player.PlayerId == "p0");
 		Assert.Contains(TestFixtures.Announcer(context).Sent, sent => sent.Key == "game.categories_judge_left");
 	}
+
+	/// <summary>A table playing with one named referee, who is the first seat.</summary>
+	private static async Task<FamilyGame> StartRefereedGame(int players = 4)
+	{
+		var definition = await LoadPackage();
+		var seats = Enumerable.Range(0, players)
+			.Select(index => TestFixtures.NewPlayer($"p{index}", token: definition.Manifest.Tokens[index].Id))
+			.ToList();
+		return new CategoriesFamily().CreateGame(new FamilyStartContext
+		{
+			Players = seats,
+			Definition = definition,
+			Lang = "en",
+			FixedJudgeId = "p0",
+			RuleValues = new()
+			{
+				["categoriesJudgeMode"] = System.Text.Json.JsonSerializer.SerializeToElement("fixed"),
+			},
+		});
+	}
+
+	// A named judge has no replacement: handing the job to the next seat would take somebody who
+	// was PLAYING and make them the referee, ending their own match on the spot. The table agreed
+	// on one person refereeing, so when that person goes the match goes with them.
+	[Fact]
+	public async Task A_named_judge_leaving_closes_the_match_for_whoever_leads()
+	{
+		var game = await StartRefereedGame();
+		var context = TestFixtures.NewContext(game.State, categoriesRules: game.State.CategoriesRules);
+		var categories = game.State.Categories!;
+		categories.Round.Phase = CategoriesRoundPhase.Writing;
+		categories.Players.First(entry => entry.PlayerId == "p1").Score = 5;
+		categories.Players.First(entry => entry.PlayerId == "p2").Score = 3;
+		var judge = game.State.Players.First(player => player.Id == "p0");
+		judge.IsBankrupt = true;
+
+		await new CategoriesFamily().OnPlayerRetiredAsync(judge, context);
+
+		Assert.True(game.State.IsGameOver);
+		Assert.Equal("p1", game.State.WinnerId);
+		// The referee is placed behind everyone who was playing for it: they wrote in no round,
+		// so a score they could never earn must not read as having lost by it.
+		Assert.Equal(1, Place(game.State, "p1"));
+		Assert.Equal(2, Place(game.State, "p2"));
+		Assert.Equal(4, Place(game.State, "p0"));
+		var announcer = TestFixtures.Announcer(context);
+		Assert.Contains(announcer.Sent, sent => sent.Key == "game.categories_judge_left_fixed");
+		Assert.Equal("p1", Assert.Single(announcer.Sent, sent => sent.Key == "game.game_over").Vars["winner"]);
+		// Never the rotating family's line: nobody inherited the job.
+		Assert.DoesNotContain(announcer.Sent, sent => sent.Key == "game.categories_judge_left");
+	}
+
+	// The rotating judge can never end a match level — a tie at the top simply plays another
+	// rotation — so this seating is the first that can, and a tie has to survive as a tie rather
+	// than handing the match to whoever sat earlier in the list.
+	[Fact]
+	public async Task A_named_judge_leaving_with_the_lead_shared_ends_level_and_crowns_nobody()
+	{
+		var game = await StartRefereedGame();
+		var context = TestFixtures.NewContext(game.State, categoriesRules: game.State.CategoriesRules);
+		var categories = game.State.Categories!;
+		categories.Round.Phase = CategoriesRoundPhase.Writing;
+		categories.Players.First(entry => entry.PlayerId == "p1").Score = 4;
+		categories.Players.First(entry => entry.PlayerId == "p2").Score = 4;
+		categories.Players.First(entry => entry.PlayerId == "p3").Score = 1;
+		var judge = game.State.Players.First(player => player.Id == "p0");
+		judge.IsBankrupt = true;
+
+		await new CategoriesFamily().OnPlayerRetiredAsync(judge, context);
+
+		Assert.True(game.State.IsGameOver);
+		Assert.Null(game.State.WinnerId);
+		Assert.Equal(1, Place(game.State, "p1"));
+		Assert.Equal(1, Place(game.State, "p2"));   // level, and both of them first
+		Assert.Equal(3, Place(game.State, "p3"));   // the one behind two leaders is third, not second
+		var announcer = TestFixtures.Announcer(context);
+		Assert.Equal(4, Assert.Single(announcer.Sent, sent => sent.Key == "game.categories_ends_level").Vars["score"]);
+		Assert.DoesNotContain(announcer.Sent, sent => sent.Key == "game.game_over");
+	}
+
+	private static int Place(GameState state, string playerId)
+		=> state.Players.First(player => player.Id == playerId).FinishPlace;
 
 	[Fact]
 	public async Task When_a_writer_leaves_their_answers_leave_with_them_and_the_round_carries_on()

@@ -39,6 +39,7 @@ import { loadBoardHelp, showBoardHelpDialog, initHelpButton } from './boardHelp.
 import { resetEndScreen, showEndScreen } from './endScreen.js';
 import { tableView } from './tableView.js';
 import { teamPanel } from './teamPanel.js';
+import { judgePanel } from './judgePanel.js';
 import { promptForBotName } from './lobby/botNameForm.js';
 import { randomBotName } from './botNames.js';
 import { teamDisplayName } from './enginePalette.js';
@@ -624,6 +625,18 @@ async function initBoard() {
 			gameId, hostId: playerSession.playerId, playerId, teamIndex,
 		}),
 		fillAtRandom: () => gameClient.fillTeamsAtRandom({ gameId, hostId: playerSession.playerId }),
+		announce: text => announce(createAnnouncement('_raw', { text }), { instant: true }),
+		error: text => announce(createAnnouncement('_raw', { text }), { instant: true }),
+	});
+
+	// A categories table that plays with ONE judge names them here, before there is a game: it is
+	// an arrangement the room agrees on, like the teams above it.
+	judgePanel.init(document.getElementById('table-judge-panel'), {
+		t: key => tSync(key),
+		isHost: () => amHost(),
+		assign: playerId => gameClient.assignJudge({
+			gameId, hostId: playerSession.playerId, playerId,
+		}),
 		announce: text => announce(createAnnouncement('_raw', { text }), { instant: true }),
 		error: text => announce(createAnnouncement('_raw', { text }), { instant: true }),
 	});
@@ -2299,6 +2312,7 @@ async function initBoard() {
 		hostId = table.hostId ?? hostId;
 		tableView.setTable(table);
 		teamPanel.render(table);
+		judgePanel.render(table);
 		// Voice belongs to the TABLE, so its switch is read from the table document. The game
 		// state that used to carry it simply does not exist between matches, which left the panel
 		// believing the room was closed at the very moment a group most wants to talk.
@@ -2375,6 +2389,7 @@ async function initBoard() {
 	});
 	// A team move is silent in the repaint that carries it, so the table is told out loud.
 	gameClient.on('teamAssigned', data => teamPanel.announceAssigned(data));
+	gameClient.on('judgeAssigned', data => judgePanel.announceAssigned(data));
 	gameClient.on('teamsFilled', () => teamPanel.announceFilled(currentTable));
 	// The shared deck belongs to the whole table, so a change is spoken to everyone — not only
 	// seen by whoever happens to be looking at the picker.

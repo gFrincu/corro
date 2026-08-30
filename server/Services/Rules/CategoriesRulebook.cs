@@ -15,10 +15,14 @@ public static class CategoriesRulebook
 	/// <summary>One player's take from a scored round, for the round's spoken result lines.</summary>
 	public sealed record RoundScore(string PlayerId, int Points, int Total);
 
+	/// <param name="firstJudgeId">Who judges from the start: under a fixed judge it is the player
+	/// the host named in the waiting room, and it never changes again. Null — or a seat that is not
+	/// at this table — falls back to the first seat, so a table that named nobody still plays.</param>
 	public static CategoriesState CreateInitialState(
 		IReadOnlyList<string> playerIds,
 		CategoryDeckDef deck,
-		CategoriesRulesConfig rules)
+		CategoriesRulesConfig rules,
+		string? firstJudgeId = null)
 	{
 		if (playerIds.Count < 3)
 		{
@@ -40,12 +44,30 @@ public static class CategoriesRulebook
 			// deck cursors live there), so the round cannot exist before the state does.
 			Round = null!,
 		};
-		state.Round = DealRound(state, deck, rules, roundNumber: 1, judgeId: playerIds[0]);
+		var judgeId = firstJudgeId is not null && playerIds.Contains(firstJudgeId)
+			? firstJudgeId
+			: playerIds[0];
+		state.Round = DealRound(state, deck, rules, roundNumber: 1, judgeId);
 		return state;
 	}
 
-	/// <summary>Whose round it is to judge, next in seat order among players still in the game.
-	/// The judge never writes, so rotating fairly IS the fairness of the whole match.</summary>
+	/// <summary>Whether this match has one judge for its whole length rather than a rotating one.</summary>
+	public static bool HasFixedJudge(CategoriesRulesConfig rules) => rules.JudgeMode == "fixed";
+
+	/// <summary>Everyone who is playing FOR the win. Under a fixed judge that is everybody but the
+	/// judge: they never write, so they can never score, and leaving them in the running would
+	/// mean a match decided in favour of somebody who was refereeing it.</summary>
+	public static IEnumerable<CategoriesPlayerState> Contenders(
+		CategoriesState state,
+		CategoriesRulesConfig rules)
+		=> HasFixedJudge(rules)
+			? state.Players.Where(player => player.PlayerId != state.Round.JudgeId)
+			: state.Players;
+
+	/// <summary>The next seat in order among players still in the game. Under a rotating judge
+	/// that is who judges next, and rotating fairly IS the fairness of the whole match; under a
+	/// fixed one it is only ever used to replace a judge who left (see
+	/// <see cref="CompleteRound"/>).</summary>
 	public static string NextJudge(CategoriesState state, IReadOnlyList<string> seatOrder, string currentJudgeId)
 	{
 		var eligible = seatOrder.Where(id => state.Players.Any(player => player.PlayerId == id)).ToList();
@@ -206,12 +228,16 @@ public static class CategoriesRulebook
 
 	/// <summary>
 	/// Close the scored round and either deal the next one or decide the match. A tie adds one
-	/// whole rotation, so the winner always wins outright.
+	/// more of whatever the unit is, so the winner always wins outright.
 	///
-	/// Both endings are read at the SAME moment: the end of a complete judge rotation. Playing to
-	/// a target score is not a race to cross it first — the judge of a round does not write in it,
-	/// so mid-rotation one player has always written more rounds than another, and calling the
-	/// match there would hand it to whoever had the most turns rather than the best answers.
+	/// Both endings are read at the SAME moment: once every judge of this match has taken the
+	/// round they were owed. Playing to a target score is not a race to cross it first — the judge
+	/// of a round does not write in it, so with a rotating judge one player has always written
+	/// more rounds than another until the rotation closes, and calling the match there would hand
+	/// it to whoever had the most turns rather than the best answers.
+	///
+	/// Under a fixed judge that moment is every round: nobody else ever judges, so every writer
+	/// has written every round and the scores are already comparable.
 	/// </summary>
 	public static RoundAdvance CompleteRound(
 		CategoriesState state,
@@ -223,17 +249,19 @@ public static class CategoriesRulebook
 		round.Phase = CategoriesRoundPhase.Finished;
 		state.Players.First(player => player.PlayerId == round.JudgeId).RoundsJudged++;
 
-		var rotationComplete = state.Players.All(player => player.RoundsJudged >= state.Cycle);
+		var contenders = Contenders(state, rules).ToList();
+		var rotationComplete = HasFixedJudge(rules)
+			|| state.Players.All(player => player.RoundsJudged >= state.Cycle);
 		var tieBreaker = false;
 		if (rotationComplete)
 		{
-			var best = state.Players.Max(player => player.Score);
+			var best = contenders.Max(player => player.Score);
 			var decided = rules.EndMode == "score"
 				? best >= rules.TargetScore
 				: state.Cycle >= rules.Cycles;
 			if (decided)
 			{
-				var leaders = state.Players.Where(player => player.Score == best).ToList();
+				var leaders = contenders.Where(player => player.Score == best).ToList();
 				if (leaders.Count == 1)
 				{
 					return new RoundAdvance(GameOver: true, WinnerId: leaders[0].PlayerId, TieBreakerStarted: false);
@@ -243,7 +271,12 @@ public static class CategoriesRulebook
 			state.Cycle++;
 		}
 
-		var judgeId = NextJudge(state, seatOrder, round.JudgeId);
+		// A fixed judge keeps the seat as long as they are still at the table; if they left, the
+		// next seat inherits it rather than leaving the match with nobody to rule.
+		var judgeId = HasFixedJudge(rules)
+			&& state.Players.Any(player => player.PlayerId == round.JudgeId)
+				? round.JudgeId
+				: NextJudge(state, seatOrder, round.JudgeId);
 		state.Round = DealRound(state, deck, rules, round.RoundNumber + 1, judgeId);
 		return new RoundAdvance(false, null, tieBreaker);
 	}

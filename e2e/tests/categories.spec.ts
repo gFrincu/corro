@@ -261,6 +261,65 @@ test('the rules the host settled on are the ones the table plays', async ({ brow
 	await flushAxeAudit(carla);
 });
 
+test('a table with one judge names them in the room, and the job never passes', async ({ browser }) => {
+	const ana = await newPlayerPage(browser, 'es-ES');
+	const berto = await newPlayerPage(browser, 'es-ES');
+	const carla = await newPlayerPage(browser, 'es-ES');
+
+	const code = await createGame(ana, 'Ana', BOARD, {
+		maxPlayers: 3,
+		contentLanguage: 'es',
+		houseRules: { categoriesJudgeMode: 'fixed', categoriesPerRound: 3, categoriesCycles: 2 },
+	});
+	await joinGame(berto, code, 'Berto');
+	await joinGame(carla, code, 'Carla');
+
+	// The choice is made in the waiting room, beside the seats, before there is a game at all.
+	const panel = ana.locator('#table-judge-panel');
+	await expect(panel).toBeVisible();
+	await expect(panel.locator('legend')).toHaveText('Quién juzga la partida');
+	// Nobody named yet, so the panel says who WOULD judge rather than showing an empty question.
+	await expect(panel.locator('input[data-judge-id]').first()).toBeChecked();
+	await flushAxeAudit(ana);
+
+	// A guest reads the same panel and cannot move it — without the disabled attribute, which
+	// would take it out of the keyboard's reach entirely.
+	const guestPanel = berto.locator('#table-judge-panel');
+	await expect(guestPanel).toBeVisible();
+	const guestOption = guestPanel.locator('input[data-judge-id]').first();
+	await expect(guestOption).toHaveAttribute('aria-disabled', 'true');
+	await expect(guestOption).not.toHaveAttribute('disabled', /.*/);
+	await flushAxeAudit(berto);
+
+	// Ana names Carla, and the whole room hears it.
+	await panel.locator('input[data-judge-id]').nth(2).dispatchEvent('click');
+	await expectAnnouncement(berto, /Carla/);
+	await expect(guestPanel.locator('input[data-judge-id]').nth(2)).toBeChecked();
+
+	await startGame(ana, [ana, berto, carla]);
+
+	// The match opens with Carla judging: no question inside the game, no clock to hand back.
+	await expect(carla.locator('.categories-start')).toBeVisible();
+	await expect(ana.locator('.categories-sheet-input')).toHaveCount(3);
+	await expect(carla.locator('.categories-sheet')).toBeHidden();
+	await flushAxeAudit(carla);
+
+	// One round played, and the job does not pass: Carla judges the next one too.
+	await carla.locator('.categories-start').click();
+	await expect(carla.locator('.categories-timer')).toBeVisible();
+	await ana.locator('.categories-finish').click();
+	await berto.locator('.categories-finish').click();
+	await expect(carla.locator('.categories-review')).toBeVisible();
+	for (let category = 0; category < 3; category++) {
+		await carla.locator('.categories-confirm').click();
+	}
+
+	await expect(carla.locator('.categories-start')).toBeVisible();
+	await expect(ana.locator('.categories-sheet-input')).toHaveCount(3);
+	await flushAxeAudit(ana);
+	await flushAxeAudit(carla);
+});
+
 test('the surface answers the reading keys without a screen reader having to hunt', async ({ browser }) => {
 	const ana = await newPlayerPage(browser, 'en-US');
 	const berto = await newPlayerPage(browser, 'en-US');

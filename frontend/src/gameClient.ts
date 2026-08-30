@@ -75,6 +75,7 @@ export interface GameClientEvents {
 	'gameStarted': StartGameResponse;
 	'lobbyUpdated': GameInfo;
 	'teamAssigned': { gameId: string; playerId: string; playerName: string; teamIndex: number | null };
+	'judgeAssigned': { gameId: string; playerId: string | null; playerName: string | null };
 	'teamsFilled': { gameId: string };
 	'contentLanguageChanged': { gameId: string; language: string };
 	/** The table as it stands, sent to a player who authenticates while no match is running. */
@@ -242,6 +243,11 @@ export class UnifiedGameClient {
 			this.emit('teamAssigned', data);
 		});
 
+		// Categories with a fixed judge: the host named who referees the whole match.
+		this.connection.on('JudgeAssigned', (data: { gameId: string; playerId: string | null; playerName: string | null }) => {
+			this.emit('judgeAssigned', data);
+		});
+
 		// The host dealt the whole room into the teams in one move.
 		this.connection.on('TeamsFilled', (data: { gameId: string }) => {
 			this.emit('teamsFilled', data);
@@ -377,6 +383,11 @@ export class UnifiedGameClient {
 	/** Journey team mode (host only): place a player in a team, or back in the pool (null). */
 	async assignTeam(request: { gameId: string; hostId: string; playerId: string; teamIndex: number | null }): Promise<void> {
 		await this.invoke("AssignTeam", request);
+	}
+
+	/** Categories fixed-judge mode (host only): name who referees, or clear it with null. */
+	async assignJudge(request: { gameId: string; hostId: string; playerId: string | null }): Promise<void> {
+		await this.invoke("AssignJudge", request);
 	}
 
 	/** Team mode (host only): deal every player in the room into the teams at random. */

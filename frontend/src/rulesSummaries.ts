@@ -139,12 +139,16 @@ export function buildCategoriesRulesLines(rules: CategoriesRulesConfig | null | 
 	const ending = r.endMode === 'score'
 		? t('game.categories_rules_target', { score: r.targetScore ?? 30 })
 		: t('game.categories_rules_cycles', { count: r.cycles });
-	return [
+	const lines = [
 		t('game.categories_rules_time', { seconds: r.roundSeconds }),
 		t('game.categories_rules_categories', { count: r.categoriesPerRound }),
 		t('game.categories_rules_points', { points: r.pointsPerAnswer }),
 		ending,
 	];
+	// Said only when the judge does NOT rotate: rotating is what this game always did, and the
+	// surface names the round's judge anyway.
+	if (r.judgeMode === 'fixed') lines.push(t('game.categories_rules_fixed_judge'));
+	return lines;
 }
 
 // ── Journey (mille-bornes-style) ───────────────────────────────────────────────

@@ -89,6 +89,12 @@ public record GameDocument
 	[JsonPropertyName("teamCount")]
 	public int? TeamCount { get; init; }
 
+	/// <summary>Categories with a fixed judge: the player the HOST named to referee the whole
+	/// match, chosen in the waiting room the way teams are arranged there. Null = nobody named,
+	/// and the first seat takes it. Public: the whole room watches who will be refereeing.</summary>
+	[JsonPropertyName("fixedJudgeId")]
+	public string? FixedJudgeId { get; init; }
+
 	/// <summary>Whether the host has made the deployment's optional voice room available to
 	/// this game. Joining remains opt-in for every player; media never enters the game state.</summary>
 	[JsonPropertyName("voiceChatEnabled")]

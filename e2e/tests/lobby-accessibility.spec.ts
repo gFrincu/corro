@@ -456,6 +456,16 @@ test('Letter Rush lets the host set the clock, the sheet and how the match ends'
 	await expect(seconds).toHaveAttribute('step', '15');
 	const perRound = page.locator('#package-rules [data-rule-id="categoriesPerRound"]');
 	await expect(perRound).toHaveValue('12');
+
+	// Who judges is a choice of its own: the job passes each round, or one person takes it all
+	// match and the table names them once the game begins.
+	const judge = page.locator('#package-rules [data-rule-id="categoriesJudgeMode"]');
+	await expect(page.locator('#package-rules fieldset.rule-choice', {
+		has: page.locator('[data-rule-id="categoriesJudgeMode"]'),
+	}).locator('legend')).toHaveText('Quién juzga');
+	await expect(judge.nth(0)).toBeChecked();
+	await judge.nth(1).dispatchEvent('click');
+	await expect(judge.nth(1)).toBeChecked();
 	await flushAxeAudit(page);
 
 	// The same ending mechanism as the other games that count, with this one's own figures.

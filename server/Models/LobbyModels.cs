@@ -111,6 +111,15 @@ public record AssignTeamRequest
 	public int? TeamIndex { get; init; }
 }
 
+/// <summary>Host request: name who referees a fixed-judge categories match (null clears it).</summary>
+public record AssignJudgeRequest
+{
+	public required string GameId { get; init; }
+	public required string HostId { get; init; }
+	/// <summary>The seat that will judge; null leaves it to the first seat at start.</summary>
+	public string? PlayerId { get; init; }
+}
+
 /// <summary>Host request: deal every player in the room into the teams at random.</summary>
 public record FillTeamsRequest
 {

@@ -1,0 +1,52 @@
+/* judge-panel.css — naming the judge of a categories table (see src/judgePanel.ts).
+ *
+ * A table with one judge for the whole match decides who it is here, beside the seats. It sits
+ * on the same surface as the team panel next to it, because it is the same kind of thing: an
+ * arrangement the room agrees on before there is a game.
+ */
+.judge-panel {
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-sm);
+	padding: 1rem;
+	margin: 1rem 0;
+}
+
+.judge-panel__group {
+	border: 0;
+	margin: 0;
+	padding: 0;
+}
+
+.judge-panel__group > legend {
+	padding: 0;
+	font-weight: 700;
+}
+
+.judge-panel__hint {
+	margin: 0.35rem 0 0.75rem;
+	color: var(--text-muted);
+}
+
+.judge-panel__list {
+	display: grid;
+	gap: 0.5rem;
+}
+
+.judge-panel__option {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	/* A comfortable target for a finger, and room for the focus ring to be seen. */
+	min-height: 44px;
+}
+
+.judge-panel__option label {
+	cursor: pointer;
+}
+
+/* A guest reads the choice but does not make it. Never dimmed by opacity alone: the text keeps
+   full contrast and the cursor is what says the control is not theirs to move. */
+.judge-panel__option input[aria-disabled="true"] {
+	cursor: default;
+}

@@ -46,6 +46,18 @@
       "nameKey": "rules.categoriesRoundSeconds"
     },
     {
+      "id": "categoriesJudgeMode",
+      "group": "categories",
+      "type": "choice",
+      "default": "rotating",
+      "options": [
+        { "id": "rotating", "nameKey": "rules.categoriesJudgeModeRotating" },
+        { "id": "fixed", "nameKey": "rules.categoriesJudgeModeFixed" }
+      ],
+      "editableByHost": true,
+      "nameKey": "rules.categoriesJudgeMode"
+    },
+    {
       "id": "categoriesEndMode",
       "group": "categories",
       "type": "choice",

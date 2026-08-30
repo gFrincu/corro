@@ -1137,6 +1137,64 @@ public partial class GameHub
 	}
 
 	/// <summary>
+	/// Categories with a fixed judge: the HOST names who referees the whole match (or clears the
+	/// choice with a null player). It belongs here rather than inside the match for the same
+	/// reason the teams do — it is an arrangement the room agrees on before there is a game — and
+	/// because only here is "the host" a fact: the turn order is SHUFFLED at start, so the first
+	/// seat of a running match is nobody in particular.
+	/// </summary>
+	public async Task AssignJudge(AssignJudgeRequest request)
+	{
+		try
+		{
+			var game = await _gameRepository.LoadGameAsync(request.GameId);
+			if (game == null)
+			{
+				await Clients.Caller.SendAsync("Error", "GAME_NOT_FOUND");
+				return;
+			}
+			if (game.HostId != request.HostId)
+			{
+				await Clients.Caller.SendAsync("Error", "HOST_ONLY");
+				return;
+			}
+			// Mid-match the judge is already refereeing; changing it under a live game would take
+			// the job off somebody who is doing it.
+			if (game.Status != GameStatus.WaitingForPlayers)
+			{
+				await Clients.Caller.SendAsync("Error", "GAME_ALREADY_STARTED");
+				return;
+			}
+			var judge = request.PlayerId is null
+				? null
+				: game.Players.FirstOrDefault(p => p.Id == request.PlayerId);
+			if (request.PlayerId is not null && judge is null)
+			{
+				await Clients.Caller.SendAsync("Error", "PLAYER_NOT_FOUND");
+				return;
+			}
+
+			var savedGame = await _gameRepository.UpdateGameAsync(game with { FixedJudgeId = judge?.Id });
+			_registry.CacheDocument(game.GameId, savedGame);
+
+			var lobbyGroup = $"lobby_{game.GameId}";
+			await Clients.Group(lobbyGroup).SendAsync("LobbyUpdated", savedGame.Sanitized());
+			// The spoken move, like a team assignment: the repaint that carries it is silent.
+			await Clients.Group(lobbyGroup).SendAsync("JudgeAssigned", new
+			{
+				gameId = game.GameId,
+				playerId = judge?.Id,
+				playerName = judge?.Name,
+			});
+		}
+		catch (Exception ex)
+		{
+			_logger?.LogError(ex, "Error in AssignJudge");
+			await Clients.Caller.SendAsync("Error", "ASSIGN_JUDGE_FAILED");
+		}
+	}
+
+	/// <summary>
 	/// Team mode: the HOST deals every player into the teams at random, in one move. The
 	/// arrangement is decided HERE — a client-side shuffle would be a burst of independent
 	/// requests that a player arriving mid-burst could leave half applied. The room gets the
@@ -1296,7 +1354,9 @@ public partial class GameHub
 				teams: arrangedTeams,
 				// What this table has already been dealt from this deck, so a group playing several
 				// matches in a row is dealt what it has not seen before it meets a repeat.
-				alreadyDealt: game.DealtFrom(definition.Manifest.GameType, game.Language));
+				alreadyDealt: game.DealtFrom(definition.Manifest.GameType, game.Language),
+				// Categories with a fixed judge: who the room named to referee the whole match.
+				fixedJudgeId: game.FixedJudgeId);
 			if (gameService.GameState is { } packageState)
 			{
 				packageState.PackageToken = packageToken; // released with the table; the client's sound pack id

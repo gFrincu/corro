@@ -38,9 +38,16 @@ public sealed record CategoriesRulesConfig
 	/// <summary>Points earned for each answer the judge accepts.</summary>
 	public int PointsPerAnswer { get; init; } = 1;
 
-	/// <summary>Complete judge rotations every player must take before scores decide the game.
-	/// A tie automatically adds another complete rotation.</summary>
+	/// <summary>How many rounds EACH judge takes before the scores decide the game. Under a
+	/// rotating judge that is a complete rotation per unit (three players, one cycle, three
+	/// rounds); under a fixed judge nobody else ever judges, so it is simply the rounds played.
+	/// A tie automatically adds another one.</summary>
 	public int Cycles { get; init; } = 1;
+
+	/// <summary>Who judges: "rotating" (the seat passes each round, the classic) or "fixed" (one
+	/// player the host names in the lobby judges the whole match and never writes). See
+	/// <see cref="Services.Corro.HouseRuleCatalog.CategoriesJudgeModes"/>.</summary>
+	public string JudgeMode { get; init; } = "rotating";
 
 	/// <summary>What ends the match: "rounds" (complete judge rotations, the classic) or "score"
 	/// (the first player past <see cref="TargetScore"/>). See
