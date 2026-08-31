@@ -2,6 +2,7 @@
   "rules": {
     "categoriesPerRound": "Categorías por ronda",
     "categoriesRoundSeconds": "Tiempo para escribir, en segundos",
+    "categoriesRepeatCategories": "Las mismas categorías en toda la vuelta de jueces",
     "categoriesEndMode": "Cuándo termina la partida",
     "categoriesEndModeRounds": "Al jugar las rondas",
     "categoriesEndModeScore": "Al llegar a los puntos",

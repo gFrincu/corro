@@ -49,6 +49,12 @@ public sealed record CategoriesRulesConfig
 	/// <see cref="Services.Corro.HouseRuleCatalog.CategoriesJudgeModes"/>.</summary>
 	public string JudgeMode { get; init; } = "rotating";
 
+	/// <summary>Whether every round of one judge rotation asks the SAME categories, so the table
+	/// answers the same list once per judge and the rounds can be compared with each other. Off
+	/// (the default) each round deals its own. Meaningless under a fixed judge — there, a rotation
+	/// IS a round — which is why the lobby only offers it while the judge rotates.</summary>
+	public bool RepeatCategories { get; init; }
+
 	/// <summary>What a ruled answer is worth: "unique" (only an answer nobody else wrote scores,
 	/// the classic) or "shared" (a unique answer is worth double and a coincidence still scores).
 	/// See <see cref="Services.Corro.HouseRuleCatalog.CategoriesScoringModes"/>.</summary>

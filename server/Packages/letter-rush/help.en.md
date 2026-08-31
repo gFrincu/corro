@@ -67,6 +67,7 @@ Creating the table sets:
 
 - who judges: whether the job passes round the table or stays with one person;
 - how answers score: only the ones nobody else wrote, or repeated ones as well;
+- whether a whole rotation of judges asks the same categories, so the rounds can be compared;
 - whether finishing first stops the clock for everybody else;
 - how many categories each round has, from three to twelve;
 - how long the writing lasts, from half a minute to five, in quarter-minute steps;

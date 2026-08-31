@@ -357,6 +357,8 @@ export interface CategoriesRulesConfig {
   stopsTheClock?: boolean;
   /** "unique" (only an answer nobody else wrote scores) or "shared" (a coincidence scores too). */
   scoring?: string;
+  /** Whether every round of one judge rotation asks the same categories. */
+  repeatCategories?: boolean;
 }
 
 // ── Journey family (Mil Millas genre) ───────────────────────────────────────

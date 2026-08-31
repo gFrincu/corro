@@ -78,6 +78,15 @@
       "nameKey": "rules.categoriesJudgeMode"
     },
     {
+      "id": "categoriesRepeatCategories",
+      "group": "categories",
+      "type": "toggle",
+      "default": false,
+      "editableByHost": true,
+      "nameKey": "rules.categoriesRepeatCategories",
+      "showWhen": { "rule": "categoriesJudgeMode", "is": "rotating" }
+    },
+    {
       "id": "categoriesEndMode",
       "group": "categories",
       "type": "choice",

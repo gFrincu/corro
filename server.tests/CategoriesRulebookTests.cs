@@ -199,6 +199,64 @@ public class CategoriesRulebookTests
 	}
 
 	[Fact]
+	public void One_list_per_rotation_asks_the_same_categories_of_every_judge()
+	{
+		var repeat = Rules with { RepeatCategories = true, Cycles = 2 };
+		var state = CategoriesRulebook.CreateInitialState(new[] { "p0", "p1", "p2" }, Deck(), repeat);
+		var seats = new[] { "p0", "p1", "p2" };
+		var list = state.Round.Prompts.Select(prompt => prompt.CategoryId).ToList();
+		var letter = state.Round.Letter;
+
+		// The rest of the first rotation: same questions, new judge each time.
+		CategoriesRulebook.CompleteRound(state, seats, Deck(), repeat);
+		Assert.Equal(list, state.Round.Prompts.Select(prompt => prompt.CategoryId));
+		// Repeating the list is not repeating the round: the letter still moves on.
+		Assert.NotEqual(letter, state.Round.Letter);
+
+		CategoriesRulebook.CompleteRound(state, seats, Deck(), repeat);
+		Assert.Equal(list, state.Round.Prompts.Select(prompt => prompt.CategoryId));
+
+		// The rotation closed, so the next one asks something else.
+		CategoriesRulebook.CompleteRound(state, seats, Deck(), repeat);
+		Assert.Equal(2, state.Cycle);
+		Assert.Empty(list.Intersect(state.Round.Prompts.Select(prompt => prompt.CategoryId)));
+	}
+
+	[Fact]
+	public void A_repeated_list_spends_the_deck_once_rather_than_once_per_round()
+	{
+		var repeat = Rules with { RepeatCategories = true, Cycles = 3 };
+		var state = CategoriesRulebook.CreateInitialState(new[] { "p0", "p1", "p2" }, Deck(), repeat);
+		var seats = new[] { "p0", "p1", "p2" };
+
+		// The whole rotation reads one list, so the deck does not move while it is being played.
+		CategoriesRulebook.CompleteRound(state, seats, Deck(), repeat);
+		CategoriesRulebook.CompleteRound(state, seats, Deck(), repeat);
+		Assert.Equal(0, state.CategoryCursor);
+		Assert.Equal(0, state.CycleCategoryCursor);
+
+		// Closing it spends exactly the one list it asked — not one per round — and the next
+		// rotation starts where that left off.
+		CategoriesRulebook.CompleteRound(state, seats, Deck(), repeat);
+
+		Assert.Equal(Rules.CategoriesPerRound, state.CategoryCursor);
+		Assert.Equal(Rules.CategoriesPerRound, state.CycleCategoryCursor);
+	}
+
+	[Fact]
+	public void Without_that_rule_every_round_deals_its_own_list()
+	{
+		var state = NewGame();
+		var seats = new[] { "p0", "p1", "p2" };
+		var list = state.Round.Prompts.Select(prompt => prompt.CategoryId).ToList();
+
+		CategoriesRulebook.CompleteRound(state, seats, Deck(), Rules);
+
+		Assert.Empty(list.Intersect(state.Round.Prompts.Select(prompt => prompt.CategoryId)));
+		Assert.Null(state.CycleCategoryCursor);
+	}
+
+	[Fact]
 	public void The_classic_scoring_pays_only_the_answer_nobody_else_wrote()
 	{
 		Assert.Equal(1, CategoriesRulebook.PointsFor(CategoriesVerdict.Accepted, Rules));

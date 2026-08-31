@@ -1495,15 +1495,17 @@ digraph (Spanish `"CH"`, `"LL"`) as one letter and the engine treats it as one.
   "targetScore": 30,         // points that win when endMode is "score" (at least 1)
   "judgeMode": "rotating",   // "rotating" | "fixed" (one judge, named in the waiting room)
   "stopsTheClock": false,    // true = the first writer to finish ends the writing for everybody
-  "scoring": "unique"        // "unique" | "shared" (a coincidence scores, a lone answer doubles)
+  "scoring": "unique",       // "unique" | "shared" (a coincidence scores, a lone answer doubles)
+  "repeatCategories": false  // true = one list of categories per judge rotation, not per round
 }
 ```
 
 The house-rule codes this family exposes to the host are `categoriesEndMode` (`"type": "choice"`,
 values `rounds` / `score`), `categoriesJudgeMode` (`"type": "choice"`, values `rotating` /
 `fixed`), `categoriesScoring` (`"type": "choice"`, values `unique` / `shared`), the toggle
-`categoriesStopClock`, and the numbers `categoriesPerRound`, `categoriesRoundSeconds`,
-`categoriesCycles` and `categoriesTargetScore`.
+`categoriesStopClock`, `categoriesRepeatCategories` (offered only while the judge rotates: with a
+fixed judge a rotation IS a round), and the numbers `categoriesPerRound`,
+`categoriesRoundSeconds`, `categoriesCycles` and `categoriesTargetScore`.
 The bounds above are the engine's, and they are checked against the values the HOST settled on as
 well as the manifest's: the lobby form's `min`/`max`/`step` are a courtesy to the person typing.
 
@@ -1514,6 +1516,10 @@ game. Bots are not supported in this family.
 ### Categories rules the engine implements
 
 - The judge rotates in seat order, one round each, and never writes in the round they judge.
+- Under `repeatCategories` every round of one judge rotation is dealt the SAME categories, so the
+  table answers one list once per judge and the rounds can be compared. The LETTER still changes
+  every round — repeating the list is not repeating the round — and the deck advances by one list
+  per rotation rather than one per round.
 - Under `"judgeMode": "fixed"` the seat does not pass. The HOST names the judge in the WAITING
   ROOM (`AssignJudge`, stored as the table's `fixedJudgeId`), which is also the only place where
   "the host" is a fact: a running match has had its turn order shuffled at start, so its first

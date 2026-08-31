@@ -470,8 +470,23 @@ test('Letter Rush lets the host set the clock, the sheet and how the match ends'
 		has: page.locator('[data-rule-id="categoriesJudgeMode"]'),
 	}).locator('legend')).toHaveText('Quién juzga');
 	await expect(judge.nth(0)).toBeChecked();
+
+	// Asking the same categories all the way round the judges only means something while the job
+	// goes round: with one judge, a rotation IS a round, so the option is not offered at all.
+	const repeat = page.locator('#package-rules [data-rule-id="categoriesRepeatCategories"]');
+	await expect(repeat).toBeVisible();
+	await expect(repeat).not.toBeChecked();
+	await repeat.dispatchEvent('click');
+	await expect(repeat).toBeChecked();
+
 	await judge.nth(1).dispatchEvent('click');
 	await expect(judge.nth(1)).toBeChecked();
+	await expect(repeat).toBeHidden();
+	// Hidden, not cleared: going back to a rotating judge finds the choice as it was left.
+	await judge.nth(0).dispatchEvent('click');
+	await expect(repeat).toBeVisible();
+	await expect(repeat).toBeChecked();
+	await judge.nth(1).dispatchEvent('click');
 	await flushAxeAudit(page);
 
 	// The same ending mechanism as the other games that count, with this one's own figures.

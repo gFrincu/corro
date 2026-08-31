@@ -91,6 +91,11 @@ public record CategoriesState
 	public int Cycle { get; set; } = 1;
 	/// <summary>How far the shuffled category deck has been dealt (it wraps).</summary>
 	public int CategoryCursor { get; set; }
+
+	/// <summary>Where the CURRENT judge rotation's categories start, while the table is playing
+	/// the same list every round of it. Null when each round deals its own — which is the default,
+	/// and always the case once a rotation closes.</summary>
+	public int? CycleCategoryCursor { get; set; }
 	/// <summary>How far the shuffled letter pool has been dealt (it wraps).</summary>
 	public int LetterCursor { get; set; }
 	public required CategoriesRoundState Round { get; set; }

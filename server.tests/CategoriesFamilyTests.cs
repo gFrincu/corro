@@ -167,8 +167,8 @@ public class CategoriesFamilyTests
 			new[]
 			{
 				"categoriesPerRound", "categoriesRoundSeconds", "categoriesScoring",
-				"categoriesStopClock", "categoriesJudgeMode", "categoriesEndMode",
-				"categoriesCycles", "categoriesTargetScore",
+				"categoriesStopClock", "categoriesJudgeMode", "categoriesRepeatCategories",
+				"categoriesEndMode", "categoriesCycles", "categoriesTargetScore",
 			},
 			offered);
 		Assert.All(offered, id => Assert.True(HouseRuleCatalog.IsKnownCategories(id), id));

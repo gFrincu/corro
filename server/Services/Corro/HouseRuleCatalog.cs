@@ -178,6 +178,7 @@ public static class HouseRuleCatalog
 		["categoriesCycles"] = (r, v) => r with { Cycles = v.GetInt32() },
 		["categoriesTargetScore"] = (r, v) => r with { TargetScore = v.GetInt32() },
 		["categoriesStopClock"] = (r, v) => r with { StopsTheClock = v.GetBoolean() },
+		["categoriesRepeatCategories"] = (r, v) => r with { RepeatCategories = v.GetBoolean() },
 		["categoriesScoring"] = (r, v) => v.ValueKind == JsonValueKind.String
 										    && CategoriesScoringModes.Contains(v.GetString()!)
 			? r with { Scoring = v.GetString()! }

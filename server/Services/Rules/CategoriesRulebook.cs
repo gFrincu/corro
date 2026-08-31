@@ -79,8 +79,16 @@ public static class CategoriesRulebook
 		return eligible[(index + 1) % eligible.Count];
 	}
 
-	/// <summary>Deal the next round: the next letter, the next categories, one blank answer per
-	/// writer. Both cursors wrap, so a long match reuses the deck rather than running dry.</summary>
+	/// <summary>
+	/// Deal the next round: the next letter, the next categories, one blank answer per writer.
+	/// Both cursors wrap, so a long match reuses the deck rather than running dry.
+	///
+	/// Under <see cref="CategoriesRulesConfig.RepeatCategories"/> every round of one judge
+	/// rotation is dealt from the SAME place in the deck, so the table answers one list once per
+	/// judge and the rounds can be compared with each other. The shared cursor only moves when the
+	/// rotation closes (see <see cref="CompleteRound"/>); the LETTER keeps changing every round,
+	/// because repeating the list is not repeating the round.
+	/// </summary>
 	public static CategoriesRoundState DealRound(
 		CategoriesState state,
 		CategoryDeckDef deck,
@@ -91,11 +99,17 @@ public static class CategoriesRulebook
 		var letter = deck.Letters[state.LetterCursor % deck.Letters.Count].ToUpperInvariant();
 		state.LetterCursor++;
 
+		if (rules.RepeatCategories)
+		{
+			state.CycleCategoryCursor ??= state.CategoryCursor;
+		}
+		var cursor = state.CycleCategoryCursor ?? state.CategoryCursor;
+
 		var prompts = new List<CategoriesPromptState>();
 		for (var i = 0; i < rules.CategoriesPerRound; i++)
 		{
-			var category = deck.Categories[state.CategoryCursor % deck.Categories.Count];
-			state.CategoryCursor++;
+			var category = deck.Categories[cursor % deck.Categories.Count];
+			cursor++;
 			prompts.Add(new CategoriesPromptState
 			{
 				CategoryId = category.Id,
@@ -105,6 +119,12 @@ public static class CategoriesRulebook
 					.Select(player => new CategoriesAnswerState { PlayerId = player.PlayerId })
 					.ToList(),
 			});
+		}
+		// Only a round that dealt its OWN list has spent any deck: while a rotation shares one,
+		// the deck stands still and the shared cursor is what the next round reads.
+		if (state.CycleCategoryCursor is null)
+		{
+			state.CategoryCursor = cursor;
 		}
 
 		return new CategoriesRoundState
@@ -287,6 +307,13 @@ public static class CategoriesRulebook
 					return new RoundAdvance(GameOver: true, WinnerId: leaders[0].PlayerId, TieBreakerStarted: false);
 				}
 				tieBreaker = true;
+			}
+			// The rotation is over, so the list it was answering is spent: move the shared cursor
+			// past it and let the next one deal a new one.
+			if (state.CycleCategoryCursor is { } spent)
+			{
+				state.CategoryCursor = spent + rules.CategoriesPerRound;
+				state.CycleCategoryCursor = null;
 			}
 			state.Cycle++;
 		}

@@ -149,6 +149,7 @@ export function buildCategoriesRulesLines(rules: CategoriesRulesConfig | null | 
 	// beside a figure it contradicts.
 	if (r.scoring === 'shared') lines[2] = t('game.categories_rules_scoring_shared');
 	// Both are said only when they are ON: what this game always did needs no line of its own.
+	if (r.repeatCategories) lines.push(t('game.categories_rules_repeat_categories'));
 	if (r.stopsTheClock) lines.push(t('game.categories_rules_stop_clock'));
 	if (r.judgeMode === 'fixed') lines.push(t('game.categories_rules_fixed_judge'));
 	return lines;

@@ -67,6 +67,7 @@ Al crear la mesa se ajustan:
 
 - quién juzga: si el puesto va rotando o lo lleva siempre la misma persona;
 - cómo puntúan las respuestas: solo las que nadie más escribió, o también las repetidas;
+- si toda la vuelta de jueces pregunta las mismas categorías, para poder comparar las rondas entre sí;
 - si quien termina primero para el tiempo de los demás;
 - cuántas categorías tiene cada ronda, de tres a doce;
 - cuánto dura la escritura, de medio minuto a cinco, en tramos de quince segundos;

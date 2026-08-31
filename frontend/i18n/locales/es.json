@@ -1127,6 +1127,7 @@
     "categories_verdict_set": "{{player}}: {{verdict}}.",
     "categories_rules_time": "Tiempo para escribir: {{seconds}} segundos",
     "categories_rules_categories": "Categorías por ronda: {{count}}",
+    "categories_rules_repeat_categories": "Todas las rondas de una vuelta preguntan las mismas categorías",
     "categories_rules_stop_clock": "Quien termina primero para el tiempo de los demás",
     "categories_rules_points": "Cada respuesta válida: {{points}} punto",
     "categories_rules_scoring_shared": "Una respuesta que nadie más escribió vale el doble, y las repetidas también suman",
