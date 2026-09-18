@@ -67,7 +67,9 @@ A cloud session starts from a bare container: repository and Node, and none of t
 above except the frontend one. `.claude/hooks/session-start.sh` (registered in
 `.claude/settings.json`) installs the rest before the session begins — PowerShell, the .NET SDK,
 both `node_modules`, the Playwright browser — and compiles the server once so the first
-`dotnet test` is a test run. It does nothing on a local machine (`$CLAUDE_CODE_REMOTE`), where
+`dotnet test` is a test run. It also points the clone at the shared pre-push hook below, which a
+fresh container never inherits (`core.hooksPath` is per-clone config, so that gate was silently
+absent in every remote session). It does nothing on a local machine (`$CLAUDE_CODE_REMOTE`), where
 `tools/dev.ps1` owns that job, and nothing on a second run: about half a minute from empty, a few
 seconds once the container image has it. **An agent in a remote session has no excuse for an
 unrun gate** — if one of them will not start, say what failed rather than skipping it.
@@ -78,7 +80,8 @@ A shared `pre-push` hook (`.githooks/pre-push`) refuses to push to ANY branch wh
 are red: it always checks repository conventions, runs the frontend (build + `npm test`) and
 backend (build + `dotnet test`) suites, and runs E2E only when `RUN_E2E=1` (it needs a built
 server + installed Playwright browsers, so it stays opt-in). `tools/dev.ps1` installs it
-idempotently on startup; when using another development path, enable it once per clone:
+idempotently on startup, and so does the remote session-start hook above; when using another
+development path, enable it once per clone:
 
 ```bash
 pwsh -File tools/install-hooks.ps1        # sets core.hooksPath=.githooks
@@ -159,6 +162,13 @@ something genuinely can't be covered, say so explicitly.
   only states a scenario REACHES. Add E2E transitions for every new/changed view, theme,
   validation error, dialog/menu, loading/success/failure and disabled/unplayable state.
   `lobby-accessibility.spec.ts` is the lobby matrix.
+- **A hover-only affordance is unreachable on a phone, and no Axe rule says so.** Anything
+  revealed by `:hover` needs a `@media (hover: none)` layout that stands on its own, reached
+  by a `newPlayerPage(browser, locale, { touch: true, viewport })` context — a narrow viewport
+  is NOT that state, since Chromium keeps matching `hover: hover` and the affordance stays
+  "visible" to the test. Assert the geometry by hand (on screen, ≥24px per WCAG 2.5.8, inside
+  its own row): `target-size` ships DISABLED in axe-core, and no rule at all catches a control
+  positioned off-screen or on top of its neighbour. `journey-touch.spec.ts` is the pattern.
 - For a state dismissed faster than the quiet period, assert it, call
   `flushAxeAudit(page)`, then close it. Final-state-only scans are forbidden. The same
   applies before closing a PAGE or context mid-scenario: a page that disappears unflushed
@@ -185,15 +195,36 @@ token id/title. Optional card art lives in `assets/cards/<id>.svg` (64×64 path 
 the loader/format first, update every relevant family/model/schema/SDK/doc surface, grep for leaked
 content ids, and add a boundary regression.
 
-**Local packages ship too (mandatory).** Some packages under `server/Packages/` are gitignored
-(`git check-ignore server/Packages/<id>` tells you which). They are not drafts: they are published
-as hidden packages on the maintainer's server, so they must work as well as the committed ones —
-and no diff, review or CI run will ever show them. Every rule, house rule, key or engine
-improvement that lands in a shipped package MUST land in every local package of the same family
-too: manifest, both locales and both help files. Then prove it, don't assume it —
+**Hidden packages ship too (mandatory).** Some packages under `server/Packages/` are not in this
+repository: they live in the private `kastwey/corro-hidden-packages` and reach a working tree as
+links (`git check-ignore server/Packages/<id>` tells you which; `tools/dev.ps1` and the remote
+session-start hook create them from a clone next to this one, or the path in
+`CORRO_HIDDEN_PACKAGES`). They are not drafts: they are published as hidden packages on the
+maintainer's server, so they must work as well as the committed ones. Every rule, house rule, key
+or engine improvement that lands in a shipped package MUST land in every hidden package of the
+same family too: manifest, both locales and both help files. Then prove it, don't assume it —
 `dotnet test` runs `KeyIntegrityTests` over every package present on disk, and
 `dotnet tools/Corro.PackageCli/bin/Debug/net10.0/corro-package.dll validate server/Packages/<id>`
-checks one. Say in your summary which local packages you touched, since the diff cannot.
+checks one.
+
+**Branch to branch.** A hidden-package change is committed and pushed FROM the private clone, on a
+branch **named exactly like the engine branch** it belongs to. CI tests a pull request with the
+private branch of the same name when one exists, and with the private `main` otherwise, so an
+engine change and the package change it needs are proven together before either merges. Merge the
+package branch no later than the engine one: production ships the private `main`. Say in your
+summary which hidden packages you touched and which private branch carries them, since the engine
+diff cannot show them.
+
+**A session without them must say so.** "Present on disk" is the whole strength of those gates
+and their whole weakness: without the private clone the hidden packages are absent and every
+check above passes without having looked at a single one. That is not compliance with this rule,
+it is the rule going unenforced — so when they are missing (a remote session without
+`HIDDEN_PACKAGES_TOKEN`, a clone without access), say plainly that the hidden-package half of the
+change could not be made or verified, rather than reporting green. Production is guarded
+independently: `deploy-production` validates every package between restoring the hidden packages
+and publishing, and refuses to ship a board the current engine rejects
+(`tools/tests/deployment-gate.tests.ps1` pins that order; [docs/deployment.md](docs/deployment.md)
+has the whole round trip).
 
 **Style.** No inline styles in HTML. No `console.log` in production (use
 `console.debug`). Handlers emit events, not direct DOM manipulation.

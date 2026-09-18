@@ -103,9 +103,7 @@ class DialogManagerClass {
 			}
 			this.cleanup();
 			// Accessibility: return focus to whoever opened the dialog (the Add-bot button,
-			// etc.), so the user lands back where they were instead of on <body>. A button
-			// action that moves focus AFTER calling close() still wins — it runs after this
-			// synchronous close event.
+			// etc.), so the user lands back where they were instead of on <body>.
 			this.restoreOpenerFocus();
 		});
 
@@ -376,14 +374,36 @@ class DialogManagerClass {
 
 	/** Return focus to the control that opened the modal dialog. Prefers the original node;
 	 *  if a re-render replaced it (same id), re-finds it by id; if it's truly gone, leaves
-	 *  focus where the browser put it. */
+	 *  focus where the browser put it.
+	 *
+	 *  Like the late pass in `show()`, this only PLACES focus — it never MOVES it. The `close`
+	 *  event is not synchronous with `close()`: the platform QUEUES it, so a button action that
+	 *  closes the dialog and then sends focus somewhere deliberate ("close this card's help and
+	 *  put me back on the card") has already run by the time this does. Restoring unconditionally
+	 *  undid it a few milliseconds later, silently — the player was left on the row's Ayuda
+	 *  button, where Enter re-opened the help instead of playing the card, and three E2E specs
+	 *  lost races to the same theft (issue #15).
+	 *
+	 *  Where nobody has claimed focus — <body>, a node a re-render detached, or the dialog that
+	 *  is closing — the opener is still exactly where the player should land, and that is the
+	 *  case this exists for: the browser's own restore cannot follow an opener that a repaint
+	 *  replaced, and this can. */
 	private restoreOpenerFocus(): void {
 		const target = this.opener?.isConnected
 			? this.opener
 			: (this.openerId ? document.getElementById(this.openerId) : null);
 		this.opener = null;
 		this.openerId = '';
+		if (!this.focusIsUnclaimed()) return;
 		(target as HTMLElement | null)?.focus?.();
+	}
+
+	/** Whether focus is currently nobody's: on <body>, on nothing, on a node that has left the
+	 *  document, or still inside a dialog of ours that is on its way out. */
+	private focusIsUnclaimed(): boolean {
+		const active = document.activeElement as HTMLElement | null;
+		if (!active || active === document.body || !active.isConnected) return true;
+		return !!this.dialog?.contains(active) || !!this.nonModalDialog?.contains(active);
 	}
 
 	// ==========================================
@@ -420,9 +440,12 @@ class DialogManagerClass {
 					i18nKey: 'game.buy_confirm_yes',
 					i18nVars: { price: options.price },
 					variant: 'primary',
+					// Close BEFORE the command goes out (see showConfirm): a modal dialog held
+					// open across a server round trip makes the rest of the page inert, so
+					// anything the answer causes to open cannot take focus.
 					action: async () => {
-						await options.onConfirm();
 						this.close();
+						await options.onConfirm();
 					}
 				},
 				{
@@ -516,9 +539,12 @@ class DialogManagerClass {
 					label: options.cancelLabel || 'Cancel',
 					i18nKey: options.cancelI18nKey || 'common.cancel',
 					variant: 'secondary',
+					// Close first here too, so the two answers behave alike and an onCancel that
+					// PLACES focus (the hand panel puts it back on the card) is not overridden a
+					// line later by the opener restore.
 					action: () => {
-						options.onCancel?.();
 						this.close();
+						options.onCancel?.();
 					}
 				},
 				{
@@ -526,9 +552,19 @@ class DialogManagerClass {
 					i18nKey: options.confirmI18nKey || 'common.confirm',
 					variant: 'primary',
 					focus: options.focusConfirm,
+					// Close BEFORE running the answer, never after awaiting it. A confirmed
+					// answer is usually a SERVER command, and awaiting it here kept this modal
+					// open for the whole round trip — during which the rest of the page is
+					// inert, so a surface the server opens in reply (the auction that ending a
+					// turn on a pending purchase starts) could not take focus; then this close
+					// handed focus back to the opener, stranding the player on the action bar
+					// with an open, unfocused dialog they never entered. Closing first also
+					// keeps an answer that opens ANOTHER dialog from being closed by this line,
+					// and matches how the rest of the client acts (the bus choice, passing an
+					// auction): leave locally, then tell the server.
 					action: async () => {
-						await options.onConfirm();
 						this.close();
+						await options.onConfirm();
 					}
 				}
 			]

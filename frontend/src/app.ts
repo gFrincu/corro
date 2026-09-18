@@ -21,6 +21,7 @@ import { AUDIO_UNLOCK_EVENTS, shouldResumeAudioContext, tokenHopCue } from './au
 import { Board } from './board.js';
 import { TokenAnimator } from './tokenAnimator.js';
 import { makeSettleGuard } from './settleGuard.js';
+import { makeInFlightGuard } from './inFlightGuard.js';
 import { holdingTeleports } from './holdingMovement.js';
 import { isTokenMotionDisabled } from './motion.js';
 import { AnnouncementGate } from './announcementGate.js';
@@ -306,10 +307,23 @@ async function initBoard() {
 	// Standing on a buyable property you haven't bought? The turn-ADVANCING key forfeits it (auction or
 	// plain discard, per the house rule) — players do it by mistake and lose the property, so confirm
 	// first. The dialog opens focused on Cancel, so an accidental keypress never forfeits.
-	const confirmForfeitBuyable = (onConfirm: () => void) => {
+	//
+	// One question at a time. The confirmation closes BEFORE its answer goes out (see
+	// dialogManager), which hands focus back to the control that asked while the command is
+	// still travelling — and the client's state still shows the pending purchase that made us
+	// ask. A second activation in that window (Enter's key auto-repeat is enough) would be
+	// decided against that stale state and ask the SAME question again, this time on top of
+	// the auction the first answer just started: the page goes inert and the player is
+	// stranded outside the auction, which is the very failure closing first exists to prevent.
+	const forfeitCommands = makeInFlightGuard();
+	const confirmForfeitBuyable = (onConfirm: () => Promise<void>) => {
 	const gs = gameManager.getCurrentGameState();
 	const pp = gs?.pendingPurchase ?? null;
-	if (!pp) { onConfirm(); return; }
+	if (!pp) { void onConfirm(); return; }
+	// Keyed by the square under the hammer: the same forfeit is never asked twice, while a
+	// later one (the next turn, the next square) is never swallowed by a stale key.
+	const key = `forfeit:${pp.squareIndex}`;
+	if (forfeitCommands.busy(key)) return;
 	const auctions = !!gs?.settings?.auctionOnDecline;
 	dialogManager.showConfirm({
 		title: tSync('game.actions.confirm_pass_title'),
@@ -317,7 +331,7 @@ async function initBoard() {
 		message: tSync(auctions ? 'game.actions.confirm_pass_auction' : 'game.actions.confirm_pass_discard',
 		{ property: pp.squareName }),
 		confirmI18nKey: 'game.actions.confirm_pass_yes',
-		onConfirm,
+		onConfirm: () => forfeitCommands.run(key, onConfirm),
 	});
 	};
 
@@ -1734,11 +1748,18 @@ async function initBoard() {
 	if (auctionDialog.isOpen()) auctionDialog.end();
 	}
 
-	// Reopen the auction modal I'm still part of (e.g. after I dismissed it by accident
-	// with Esc). Driven from the action bar and a keyboard shortcut. openAuctionModal is
-	// idempotent (no-op if already open or if I passed this square), and the desiredModal
-	// check ensures there really is an auction I may rejoin before reopening anything.
+	// Get back INTO the auction I'm still part of. Driven from the action bar and a keyboard
+	// shortcut, and what the player wants either way is FOCUS: the panel is non-modal, so
+	// Escape parks focus on the board (minimizing it) and leaves it open, and a dialog that
+	// opened while a modal one covered the page never got focus at all.
+	//
+	// So the already-open case is the NORMAL one, not the exception — and it used to be the
+	// only case that could happen, which is why the control did nothing: openAuctionModal
+	// returns immediately when the dialog is open, so it could only ever reopen a dialog that
+	// wasn't there. Focus it instead, and keep openAuctionModal for the genuinely closed case
+	// (dismissed for good), where desiredModal proves there is an auction left to rejoin.
 	function reenterAuction(): void {
+	if (auctionDialog.focus()) return;
 	// getSquares() resolves every name to this player's language; the raw state carries the
 	// board's canonical ones, which would show through in the trade review.
 	const desired = desiredModal(gameManager.getCurrentGameState(), gameManager.getMyPlayerId(),
